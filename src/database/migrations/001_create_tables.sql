@@ -1,155 +1,139 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- =============================================================
+-- EXTENSIONS
+-- =============================================================
+CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- for gen_random_uuid()
 
-CREATE TYPE notification_source AS ENUM ('deadline', 'task_shared', 'comment', 'trail');
-CREATE TYPE auth_provider AS ENUM ('google', 'apple', 'github', 'password');
-CREATE TYPE plan_type AS ENUM ('free', 'pro', 'premium');
 
------------ User & Identity Management Tables -----------
-CREATE TABLE users (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    email_verified BOOLEAN DEFAULT FALSE,
-    name VARCHAR(255),
-    phone VARCHAR(50),
-    avatar_url TEXT,
-    last_login TIMESTAMPTZ,
-    language VARCHAR(10) DEFAULT 'en',
-    theme VARCHAR(20) DEFAULT 'light',
-    is_email_notifications BOOLEAN DEFAULT TRUE,
-    is_push_notifications BOOLEAN DEFAULT TRUE,
-    is_deadline_reminders BOOLEAN DEFAULT TRUE,
-    is_collaboration_updates BOOLEAN DEFAULT TRUE,
-    is_weekly_digest BOOLEAN DEFAULT TRUE,
-    terms_accepted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+-- =============================================================
+-- USER
+-- =============================================================
+CREATE TABLE "user" (
+    kuid          CHAR(32)      NOT NULL DEFAULT REPLACE(gen_random_uuid()::text, '-', ''),
+    full_name     VARCHAR(255)  NOT NULL,
+    phone         VARCHAR(20),
+    email         VARCHAR(255)  UNIQUE,
+    cnic          VARCHAR(20)   UNIQUE,
+    is_active     BOOLEAN       NOT NULL DEFAULT TRUE,
+    password      TEXT          NOT NULL,
+    dob           DATE,
+    gender        VARCHAR(10)   CHECK (gender IN ('MALE', 'FEMALE')),
+    occupation    VARCHAR(100),
+    created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (kuid)
 );
 
-CREATE TABLE auth_accounts (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(kuid) ON DELETE CASCADE,
-    provider auth_provider NOT NULL,
-    provider_user_id TEXT,
-    password_hash TEXT,
-    access_token TEXT,
-    refresh_token TEXT,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+
+-- =============================================================
+-- HOSTEL
+-- =============================================================
+CREATE TABLE hostel (
+    kuid                      CHAR(32)     NOT NULL DEFAULT REPLACE(gen_random_uuid()::text, '-', ''),
+    owner_kuid                CHAR(32)     NOT NULL,
+    name                      VARCHAR(255) NOT NULL,
+    country                   VARCHAR(50)  CHECK (country IN ('PAKISTAN')),
+    city                      VARCHAR(100),
+    area                      VARCHAR(100),
+    full_address_text         TEXT,
+    latitude                  DECIMAL(10, 8),
+    longitude                 DECIMAL(11, 8),
+    near_by                   TEXT,
+    gender_allowed            VARCHAR(10)  CHECK (gender_allowed IN ('MALE', 'FEMALE')),
+    type                      VARCHAR(20)  CHECK (type IN ('STUDENT', 'PROFESSIONAL', 'MIXED')),
+    visitor_policy            VARCHAR(20)  CHECK (visitor_policy IN ('ALLOWED', 'NOT_ALLOWED', 'LIMITED_HOURS')),
+    smoking                   VARCHAR(20)  CHECK (smoking IN ('ALLOWED', 'NOT_ALLOWED')),
+    rules                     TEXT,
+    admission_photos_url      TEXT[],      -- array of URLs
+    reception_photos_url      TEXT[],
+    mess_area_photos_url      TEXT[],
+    created_at                TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at                TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (kuid),
+    CONSTRAINT fk_hostel_owner FOREIGN KEY (owner_kuid) REFERENCES "user" (kuid) ON DELETE RESTRICT
 );
 
-CREATE TABLE user_devices (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    device_name TEXT,
-    user_id UUID NOT NULL REFERENCES users(kuid) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+CREATE INDEX idx_hostel_owner_kuid ON hostel (owner_kuid);
+
+-- =============================================================
+-- PERMISSION
+-- =============================================================
+CREATE TABLE permission (
+    kuid             CHAR(32)     NOT NULL DEFAULT REPLACE(gen_random_uuid()::text, '-', ''),
+    permission_name  VARCHAR(100) NOT NULL UNIQUE,
+    description      TEXT,
+    created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (kuid)
 );
 
------------ Subscriptions & Billing Tables -----------
-CREATE TABLE plans (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    type plan_type NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+
+-- =============================================================
+-- PAYMENT_TYPE
+-- =============================================================
+CREATE TABLE payment_type (
+    kuid         CHAR(32)     NOT NULL DEFAULT REPLACE(gen_random_uuid()::text, '-', ''),
+    name         VARCHAR(100) NOT NULL UNIQUE,  
+    description  TEXT,
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (kuid)
 );
 
-CREATE TABLE plan_fees (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    fee DECIMAL(12, 2) NOT NULL,
-    plan_id UUID NOT NULL REFERENCES plans(kuid),
-    valid_from DATE NOT NULL,
-    valid_to DATE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+
+-- =============================================================
+-- ACCOUNT_TYPE
+-- =============================================================
+CREATE TABLE account_type (
+    kuid        CHAR(32)     NOT NULL DEFAULT REPLACE(gen_random_uuid()::text, '-', ''),
+    name        VARCHAR(100) NOT NULL UNIQUE,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (kuid)
 );
 
-CREATE TABLE billing (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(kuid),
-    plan_id UUID NOT NULL REFERENCES plans(kuid),
-    expires_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+
+-- =============================================================
+-- FACILITIES
+-- =============================================================
+CREATE TABLE facilities (
+    kuid        CHAR(32)     NOT NULL DEFAULT REPLACE(gen_random_uuid()::text, '-', ''),
+    name        VARCHAR(100) NOT NULL UNIQUE,
+    icon        VARCHAR(255),
+    is_active   BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (kuid)
 );
 
------------ Tasks & Groups Tables -----------
-CREATE TABLE groups (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    icon_url TEXT,
-    color VARCHAR(7),
-    is_deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+
+-- =============================================================
+-- ComplaintCategory
+-- =============================================================
+CREATE TABLE complaintcategory (
+    id            SERIAL,
+    kuid          CHAR(32)     NOT NULL DEFAULT REPLACE(gen_random_uuid()::text, '-', ''),
+    category_name VARCHAR(255) NOT NULL,
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (id),
+    UNIQUE (kuid),
+    UNIQUE (category_name)
 );
 
-CREATE TABLE tasks (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title TEXT NOT NULL,
-    group_id UUID REFERENCES groups(kuid) ON DELETE SET NULL,
-    is_completed BOOLEAN DEFAULT FALSE,
-    is_deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
 
-CREATE TABLE deadlines (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    task_id UUID NOT NULL REFERENCES tasks(kuid) ON DELETE CASCADE,
-    timeline TIMESTAMPTZ NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
+-- =============================================================
+-- Priority
+-- =============================================================
+CREATE TABLE priority (
+    id            SERIAL,
+    kuid          CHAR(32)     NOT NULL DEFAULT REPLACE(gen_random_uuid()::text, '-', ''),
+    priority_name VARCHAR(50)  NOT NULL,
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 
------------ Social & Metadata Tables -----------
-CREATE TABLE permissions (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    key VARCHAR(50) NOT NULL,
-    description TEXT
-);
-
-CREATE TABLE shared_tasks (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(kuid),
-    task_id UUID NOT NULL REFERENCES tasks(kuid),
-    permission_id UUID NOT NULL REFERENCES permissions(kuid),
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE comments (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    content TEXT NOT NULL,
-    task_id UUID NOT NULL REFERENCES tasks(kuid) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(kuid),
-    parent_id UUID REFERENCES comments(kuid),
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMPTZ
-);
-
-CREATE TABLE photos (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    task_id UUID NOT NULL REFERENCES tasks(kuid) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE notifications (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title TEXT,
-    description TEXT,
-    is_read BOOLEAN DEFAULT FALSE,
-    image TEXT,
-    source_type notification_source,
-    triggering_source_kuid UUID,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE password_resets (
-    kuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(kuid),
-    token_hash TEXT NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL,
-    used_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    PRIMARY KEY (id),
+    UNIQUE (kuid),
+    UNIQUE (priority_name)
 );

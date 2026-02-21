@@ -8,7 +8,9 @@ import { LoggerService } from '../common/services/logger.service';
 import { PasswordService } from '../common/services/password.service';
 import { TokenService } from '../common/services/token.service';
 import { UserRepository } from './repositories/user.repository';
-import { AuthMethodRepository } from './repositories/auth-method.repository';
+import { RoleRepository } from './repositories/role.repository';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 
 @Module({
   imports: [
@@ -25,12 +27,23 @@ import { AuthMethodRepository } from './repositories/auth-method.repository';
   providers: [
     AuthService,
     UserRepository,
-    AuthMethodRepository,
+    RoleRepository,
     PasswordService,
     TokenService,
     LoggerService,
     TransactionHelper,
+    JwtAuthGuard,
+    RolesGuard,
   ],
-  exports: [TokenService, PasswordService], 
+  exports: [
+    TokenService,
+    PasswordService,
+    JwtAuthGuard,
+    RolesGuard,
+    UserRepository,
+    RoleRepository,
+    TransactionHelper,
+    LoggerService,
+  ],
 })
 export class AuthModule {}

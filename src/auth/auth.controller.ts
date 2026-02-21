@@ -1,15 +1,23 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SigninDto, SignupDto } from './dto/auth.dto';
+import { SigninDto, CustomerSignupDto, OwnerSignupDto, WardenFirstTimeLoginDto } from './dto/auth.dto';
+import { Public } from './decorators/public.decorator';
 
 @Controller('auth')
+@Public() // All auth routes (signin, signup, warden) do not require JWT
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
-  @Post('signup')
+  @Post('signup/customer')
   @HttpCode(HttpStatus.CREATED)
-  async signup(@Body() signupDto: SignupDto) {
-    return this.authService.signup(signupDto);
+  async customerSignup(@Body() signupDto: CustomerSignupDto) {
+    return this.authService.customerSignup(signupDto);
+  }
+
+  @Post('signup/owner')
+  @HttpCode(HttpStatus.CREATED)
+  async ownerSignup(@Body() signupDto: OwnerSignupDto) {
+    return this.authService.ownerSignup(signupDto);
   }
 
   @Post('signin')
@@ -17,4 +25,12 @@ export class AuthController {
   async signin(@Body() signinDto: SigninDto) {
     return this.authService.signin(signinDto);
   }
+
+  @Post('warden/first-time-login')
+  @HttpCode(HttpStatus.OK)
+  async wardenFirstTimeLogin(@Body() wardenLoginDto: WardenFirstTimeLoginDto) {
+    return this.authService.wardenFirstTimeLogin(wardenLoginDto);
+  }
+
+
 }

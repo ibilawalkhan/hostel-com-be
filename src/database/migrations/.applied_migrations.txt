@@ -3,3 +3,4 @@
 003_level3_tables.sql
 004_level4_tables.sql
 005_update_user_cnic_fields.sql
+006_add_user_selfie_fields.sql

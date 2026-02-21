@@ -1,42 +1,111 @@
 export const UserQueries = {
-  IS_USER_EXISTS: `
+  IS_USER_EXISTS_BY_EMAIL: `
     SELECT 1 
-    FROM USERS 
+    FROM "user" 
     WHERE email = $1
   `,
 
+  IS_USER_EXISTS_BY_PHONE: `
+    SELECT 1 
+    FROM "user" 
+    WHERE phone = $1
+  `,
+
+  IS_USER_EXISTS_BY_CNIC: `
+    SELECT 1 
+    FROM "user" 
+    WHERE cnic_number = $1
+  `,
+
   FIND_BY_EMAIL: `
-    SELECT kuid, email, name, terms_accepted, email_verified, created_at, updated_at
-    FROM USERS 
+    SELECT kuid, full_name, phone, email, cnic_number, cnic_front, cnic_back, selfie, is_active, created_at, updated_at
+    FROM "user" 
     WHERE email = $1
+  `,
+
+  FIND_BY_PHONE: `
+    SELECT kuid, full_name, phone, email, cnic_number, cnic_front, cnic_back, selfie, is_active, created_at, updated_at
+    FROM "user" 
+    WHERE phone = $1
   `,
 
   FIND_BY_EMAIL_WITH_PASSWORD: `
     SELECT 
-      u.kuid, 
-      u.email, 
-      u.name, 
-      u.terms_accepted, 
-      u.email_verified,
-      u.created_at, 
-      u.updated_at, 
-      a.password_hash
-    FROM USERS u
-    INNER JOIN AUTH_Accounts a ON u.kuid = a.user_id
-    WHERE u.email = $1 AND a.provider = 'password'
+      kuid, 
+      full_name,
+      phone,
+      email, 
+      cnic_number,
+      cnic_front,
+      cnic_back,
+      selfie,
+      is_active,
+      password,
+      created_at, 
+      updated_at
+    FROM "user"
+    WHERE email = $1
+  `,
+
+  FIND_BY_PHONE_WITH_PASSWORD: `
+    SELECT 
+      kuid, 
+      full_name,
+      phone,
+      email, 
+      cnic_number,
+      cnic_front,
+      cnic_back,
+      selfie,
+      is_active,
+      password,
+      created_at, 
+      updated_at
+    FROM "user"
+    WHERE phone = $1
+  `,
+
+  FIND_BY_KUID: `
+    SELECT kuid, full_name, phone, email, cnic_number, cnic_front, cnic_back, selfie, is_active, created_at, updated_at
+    FROM "user"
+    WHERE kuid = $1
+  `,
+
+  FIND_BY_KUID_WITH_PASSWORD: `
+    SELECT 
+      kuid, 
+      full_name,
+      phone,
+      email, 
+      cnic_number,
+      cnic_front,
+      cnic_back,
+      selfie,
+      is_active,
+      password,
+      created_at, 
+      updated_at
+    FROM "user"
+    WHERE kuid = $1
+  `,
+
+  UPDATE_WARDEN_VERIFICATION: `
+    UPDATE "user"
+    SET cnic_front = $1, cnic_back = $2, selfie = $3, updated_at = NOW()
+    WHERE kuid = $4
+    RETURNING kuid, full_name, phone, email, cnic_number, cnic_front, cnic_back, selfie, is_active, created_at, updated_at
   `,
 
   INSERT_USER: `
-    INSERT INTO USERS (email, name, terms_accepted, email_verified) 
-    VALUES ($1, $2, $3, false) 
-    RETURNING kuid, email, name, terms_accepted, email_verified, created_at, updated_at
+    INSERT INTO "user" (full_name, phone, email, password, cnic_number, cnic_front, cnic_back) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7) 
+    RETURNING kuid, full_name, phone, email, cnic_number, cnic_front, cnic_back, is_active, created_at, updated_at
   `,
 
-  UPDATE_EMAIL_VERIFIED: `
-    UPDATE USERS 
-    SET email_verified = true, updated_at = NOW()
-    WHERE kuid = $1
-    RETURNING kuid, email, email_verified
+  INSERT_USER_WITHOUT_CNIC: `
+    INSERT INTO "user" (full_name, phone, email, password) 
+    VALUES ($1, $2, $3, $4) 
+    RETURNING kuid, full_name, phone, email, cnic_number, cnic_front, cnic_back, is_active, created_at, updated_at
   `,
 } as const;
 

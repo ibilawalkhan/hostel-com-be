@@ -8,6 +8,7 @@
   "scripts": {
     "build": "nest build",
     "migrate": "node src/database/scripts/migrate.js",
+    "seed": "node src/database/scripts/seed.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "ts-node-dev --respawn --transpile-only src/main.ts",
     "start:dev": "nest start --watch",

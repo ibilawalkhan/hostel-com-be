@@ -4,6 +4,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { DatabaseModule } from './database/database.module';
+import { IssuesModule } from './issues/issues.module';
+import { LookupModule } from './lookup/lookup.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -14,6 +16,8 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     DatabaseModule,
     AuthModule,
     UsersModule,
+    IssuesModule,
+    LookupModule,
   ],
   controllers: [],
   providers: [

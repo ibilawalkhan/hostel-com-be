@@ -19,31 +19,24 @@ export class LookupRepository {
     return result.rows;
   }
 
-  async findFacilities() {
-    const result = await this.pool.query(
-      `SELECT kuid, name, icon FROM facilities WHERE is_active = TRUE ORDER BY name`,
-    );
-    return result.rows;
-  }
-
-  async findPaymentTypes() {
-    const result = await this.pool.query(
-      `SELECT kuid, name, description FROM payment_type ORDER BY name`,
-    );
-    return result.rows;
-  }
-
-  async findAccountTypes() {
-    const result = await this.pool.query(
-      `SELECT kuid, name FROM account_type ORDER BY name`,
-    );
-    return result.rows;
-  }
-
   async findPermissions() {
     const result = await this.pool.query(
       `SELECT kuid, permission_name, description FROM permission ORDER BY permission_name`,
     );
     return result.rows;
+  }
+
+  async findAllMetadata() {
+    const [categories, priorities, permissions] = await Promise.all([
+      this.findComplaintCategories(),
+      this.findComplaintPriorities(),
+      this.findPermissions(),
+    ]);
+
+    return {
+      categories,
+      priorities,
+      permissions,
+    };
   }
 }

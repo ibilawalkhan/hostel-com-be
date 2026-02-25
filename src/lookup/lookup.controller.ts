@@ -13,24 +13,14 @@ import { LookupService } from './lookup.service';
 export class LookupController {
   constructor(private readonly lookupService: LookupService) {}
 
-  @Get('complaint-categories')
-  @ApiOperation({ summary: 'Get all complaint categories' })
-  @ApiResponse({ status: 200, description: 'List of complaint categories' })
-  getComplaintCategories() {
-    return this.lookupService.getComplaintCategories();
+  @Get('metadata')
+  @ApiOperation({ summary: 'Get all application metadata for initialization' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'All metadata including categories, priorities, facilities, payment types, account types, and permissions',
+  })
+  getAllMetadata() {
+    return this.lookupService.getAllMetadata();
   }
-
-  @Get('complaint-priorities')
-  @ApiOperation({ summary: 'Get all complaint priority levels' })
-  @ApiResponse({ status: 200, description: 'List of priority levels' })
-  getComplaintPriorities() {
-    return this.lookupService.getComplaintPriorities();
-  }
-
-  // @Get('permissions')
-  // @ApiOperation({ summary: 'Get all available permissions' })
-  // @ApiResponse({ status: 200, description: 'List of permissions' })
-  // getPermissions() {
-  //   return this.lookupService.getPermissions();
-  // }
 }

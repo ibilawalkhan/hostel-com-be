@@ -54,3 +54,6 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Migration state (tracked in DB per environment; file no longer used)
+src/database/migrations/.applied_migrations.txt

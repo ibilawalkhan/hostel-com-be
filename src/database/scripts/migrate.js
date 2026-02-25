@@ -36,7 +36,7 @@ if (missingVars.length > 0) {
 }
 
 const MIGRATIONS_DIR = path.join(__dirname, '../migrations');
-const APPLIED_LOG = path.join(MIGRATIONS_DIR, '.applied_migrations.txt');
+const MIGRATIONS_TABLE = 'schema_migrations';
 
 // ============================================================
 // Helper Functions
@@ -63,15 +63,19 @@ async function runMigrations() {
   const pool = new Pool(config);
 
   try {
-    // Create log file if doesn't exist
-    if (!fs.existsSync(APPLIED_LOG)) {
-      fs.writeFileSync(APPLIED_LOG, '', 'utf8');
-    }
+    // Ensure migrations tracking table exists (in the database, so each env has its own history)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ${MIGRATIONS_TABLE} (
+        filename VARCHAR(255) PRIMARY KEY,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
 
-    // Get list of applied migrations
-    const appliedMigrations = fs.readFileSync(APPLIED_LOG, 'utf8')
-      .split('\n')
-      .filter(Boolean);
+    // Get list of applied migrations from the database
+    const result = await pool.query(
+      `SELECT filename FROM ${MIGRATIONS_TABLE} ORDER BY applied_at`
+    );
+    const appliedMigrations = result.rows.map(row => row.filename);
 
     // Get all migration files
     const migrationFiles = fs.readdirSync(MIGRATIONS_DIR)
@@ -86,7 +90,7 @@ async function runMigrations() {
     let newCount = 0;
 
     for (const file of migrationFiles) {
-      // Check if already applied
+      // Check if already applied (in this database)
       if (appliedMigrations.includes(file)) {
         log(`⊘ Skipping (already applied): ${file}`, 'yellow');
         continue;
@@ -98,42 +102,51 @@ async function runMigrations() {
       const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8');
 
       try {
-        // Run migration in a transaction
+        // Run migration
         await pool.query(sql);
-        
-        // Mark as applied
-        fs.appendFileSync(APPLIED_LOG, file + '\n', 'utf8');
+
+        // Record as applied in this database
+        await pool.query(
+          `INSERT INTO ${MIGRATIONS_TABLE} (filename) VALUES ($1)`,
+          [file]
+        );
+
         log(`✓ Success: ${file}`, 'green');
         newCount++;
+        appliedMigrations.push(file);
       } catch (error) {
         // Check if error is due to objects already existing (migration already applied)
         const errorMessage = error.message.toLowerCase();
-        const isAlreadyExistsError = 
+        const isAlreadyExistsError =
           errorMessage.includes('already exists') ||
           errorMessage.includes('duplicate') ||
           (errorMessage.includes('relation') && errorMessage.includes('already'));
-        
+
         // Check if error is due to objects not existing (migration already applied in different way)
-        // Common cases: column already renamed, constraint already dropped, etc.
-        const isDoesNotExistError = 
+        const isDoesNotExistError =
           errorMessage.includes('does not exist') &&
-          (errorMessage.includes('column') || 
-           errorMessage.includes('constraint') || 
-           errorMessage.includes('index'));
-        
+          (errorMessage.includes('column') ||
+            errorMessage.includes('constraint') ||
+            errorMessage.includes('index'));
+
         if (isAlreadyExistsError || isDoesNotExistError) {
-          // Migration appears to have been run already (or changes already applied), skip it
           log(`⊘ Skipping (already applied): ${file}`, 'yellow');
           log(`   Note: ${error.message}`, 'yellow');
-          
-          // Mark as applied to avoid future attempts
-          if (!appliedMigrations.includes(file)) {
-            fs.appendFileSync(APPLIED_LOG, file + '\n', 'utf8');
+
+          // Mark as applied in DB so we don't try again
+          try {
+            await pool.query(
+              `INSERT INTO ${MIGRATIONS_TABLE} (filename) VALUES ($1) ON CONFLICT (filename) DO NOTHING`,
+              [file]
+            );
+          } catch (insertErr) {
+            // ignore duplicate key
           }
+          appliedMigrations.push(file);
           continue;
         }
-        
-        // For other errors, fail as before
+
+        // For other errors, fail
         log(`✗ Failed: ${file}`, 'red');
         log(`Error: ${error.message}`, 'red');
         log('Migration failed! Fix the error and run again.', 'red');

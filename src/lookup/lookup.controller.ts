@@ -6,6 +6,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { LookupService } from './lookup.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { TokenPayload } from '../common/services/token.service';
 
 @ApiTags('Lookup')
 @ApiBearerAuth('JWT')
@@ -18,9 +20,12 @@ export class LookupController {
   @ApiResponse({
     status: 200,
     description:
-      'All metadata including categories, priorities, facilities, payment types, account types, and permissions',
+      'All metadata including categories, priorities, facilities, payment types, account types, permissions, and (for owners) their hostels with branches',
   })
-  getAllMetadata() {
-    return this.lookupService.getAllMetadata();
+  getAllMetadata(@CurrentUser() payload: TokenPayload) {
+
+    return this.lookupService.getAllMetadata(payload.sub);
+
   }
+  
 }

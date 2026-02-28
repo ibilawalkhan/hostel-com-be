@@ -120,10 +120,6 @@ export class AddNewWardenDto {
   @Matches(/^[0-9+\-\s()]+$/, { message: 'Please provide a valid phone number' })
   phone_number: string;
 
-  @ApiPropertyOptional({ example: 'warden@hostel.com' })
-  @IsOptional()
-  @IsEmail({}, { message: 'Please provide a valid email address' })
-  email?: string;
 
   @ApiProperty({ description: 'hostel_kuid to assign the warden to' })
   @IsNotEmpty()

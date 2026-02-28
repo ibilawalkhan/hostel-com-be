@@ -21,17 +21,6 @@ export async function validateUserUniqueness(
     throw new UserAlreadyExistsException();
   }
 
-  if (email) {
-    const existsByEmail = await userRepository.existsByEmail(email);
-    if (existsByEmail) {
-      logger.warn(
-        `Signup attempt with existing email: ${email}`,
-        'ValidationHelper',
-      );
-      throw new UserAlreadyExistsException();
-    }
-  }
-
   if (cnic) {
     const existsByCnic = await userRepository.existsByCnic(cnic);
     if (existsByCnic) {

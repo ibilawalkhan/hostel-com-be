@@ -37,7 +37,18 @@ export class UsersController {
     };
   }
 
-  @Post('warden')
+  @Get('list-wardens-by-owner')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER')
+  @ApiOperation({ summary: 'Owner: list wardens for their hostels' })
+  @ApiResponse({ status: 200, description: 'List of wardens with name, status, email, phone, hostel, branch, permissions, created date' })
+  @ApiResponse({ status: 403, description: 'Only OWNER can perform this action' })
+  async getWardenList(@CurrentUser() payload: TokenPayload) {
+    const list = await this.usersService.getWardenList(payload.sub);
+    return { wardens: list };
+  }
+
+  @Post('add-new-warden')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(RolesGuard)
   @Roles('OWNER')

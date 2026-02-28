@@ -50,7 +50,7 @@ export class TokenService {
   private async generateAccessToken(payload: TokenPayload): Promise<string> {
     return this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: '15m', 
+      expiresIn: '1d', 
     });
   }
 

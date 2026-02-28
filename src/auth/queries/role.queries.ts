@@ -1,12 +1,12 @@
 export const RoleQueries = {
   INSERT_ROLE: `
-    INSERT INTO role (user_kuid, name, assigned_hostel, hostel_branch)
+    INSERT INTO role (user_kuid, name, assigned_hostel_kuid, hostel_branch_kuid)
     VALUES ($1, $2, $3, $4)
-    RETURNING kuid, user_kuid, assigned_hostel, hostel_branch, name, is_active, created_at, updated_at
+    RETURNING kuid, user_kuid, assigned_hostel_kuid, hostel_branch_kuid, name, is_active, created_at, updated_at
   `,
 
   FIND_BY_USER_KUID: `
-    SELECT kuid, user_kuid, assigned_hostel, hostel_branch, name, is_active, created_at, updated_at
+    SELECT kuid, user_kuid, assigned_hostel_kuid, hostel_branch_kuid, name, is_active, created_at, updated_at
     FROM role
     WHERE user_kuid = $1
     ORDER BY created_at DESC

@@ -37,7 +37,7 @@ export class AuthService {
       this.logger,
       phone_number,
       null,
-      null,
+      null
     );
 
     const passwordHash = await this.passwordService.hash(password);

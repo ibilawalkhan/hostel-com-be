@@ -27,7 +27,7 @@ export class RoleRepository {
     const result = await client.query(RoleQueries.INSERT_ROLE, [
       userKuid,
       roleName,
-      assignedHostel || null,
+      assignedHostel,
       hostelBranch || null,
     ]);
 

@@ -5,7 +5,7 @@ import { LookupRepository } from './lookup.repository';
 export class LookupService {
   constructor(private lookupRepository: LookupRepository) {}
 
-  async getAllMetadata() {
-    return this.lookupRepository.findAllMetadata();
+  async getAllMetadata(ownerKuid: string) {
+    return this.lookupRepository.findAllMetadata(ownerKuid);
   }
 }

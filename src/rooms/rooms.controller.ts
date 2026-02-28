@@ -4,15 +4,18 @@ import {
   Post,
   Body,
   Patch,
-  Param,
   Delete,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
-import { InitiateRoomsDto } from './dto/initiate-rooms.dto';
+import { ListRoomsQueryDto } from './dto/list-rooms-query.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -24,47 +27,66 @@ import type { TokenPayload } from '../common/services/token.service';
 export class RoomsController {
   constructor(private readonly roomsService: RoomsService) {}
 
-  @Post('initiate')
+  @Get()
   @UseGuards(RolesGuard)
   @Roles('OWNER', 'WARDEN')
-  @ApiOperation({
-    summary: 'Owner/Warden: get rooms & beds configuration for given room_type and total_rooms',
-  })
-  @ApiResponse({
-    status: 200,
-    description:
-      'Returns rooms array with room_type, room_no, floor_no, room_size, attached_washroom, beds_configuration per room',
-  })
+  @ApiOperation({ summary: 'Owner/Warden: list all rooms with pagination (10 per page)' })
+  @ApiResponse({ status: 200, description: 'Paginated list of rooms with room_no, type, capacity, occupied, empty_count, status, price_per_bed' })
+  listAllRooms(@Query() query: ListRoomsQueryDto) {
+    return this.roomsService.listAllRooms(query);
+  }
+
+  @Get('stats')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'WARDEN')
+  @ApiOperation({ summary: 'Owner/Warden: get room and bed stats (total_rooms, total_beds, occupied_beds, available_beds)' })
+  @ApiResponse({ status: 200, description: 'Aggregate counts; optional hostel_kuid to filter by hostel' })
+  getRoomBedStats(@Query('hostel_kuid') hostelKuid?: string) {
+    return this.roomsService.getRoomBedStats(hostelKuid);
+  }
+
+  @Post('create')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'WARDEN')
+  @ApiOperation({ summary: 'Owner/Warden: create rooms with beds and washrooms' })
+  @ApiResponse({ status: 201, description: 'Rooms created successfully' })
   @ApiResponse({ status: 403, description: 'Only OWNER or WARDEN can perform this action' })
-  initiateRooms(
-    @Body() dto: InitiateRoomsDto,
+  createRooms(
+    @Body() dto: CreateRoomDto,
     @CurrentUser() _user: TokenPayload,
   ) {
-    return this.roomsService.initiateRooms(dto);
-  }
-
-  @Post()
-  create(@Body() createRoomDto: CreateRoomDto) {
-    return this.roomsService.create(createRoomDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.roomsService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.roomsService.findOne(+id);
+    return this.roomsService.createRooms(dto);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto) {
-    return this.roomsService.update(+id, updateRoomDto);
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'WARDEN')
+  @ApiOperation({ summary: 'Owner/Warden: edit a room by room kuid' })
+  @ApiResponse({ status: 200, description: 'Room updated successfully' })
+  @ApiResponse({ status: 404, description: 'Room not found' })
+  @ApiResponse({ status: 403, description: 'Only OWNER or WARDEN can perform this action' })
+  updateRoom(
+    @Param('id') id: string,
+    @Body() dto: UpdateRoomDto,
+    @CurrentUser() _user: TokenPayload,
+  ) {
+    return this.roomsService.updateRoom(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.roomsService.remove(+id);
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'WARDEN')
+  @ApiOperation({ summary: 'Owner/Warden: delete a room by room kuid (cascades to beds, washroom, facilities)' })
+  @ApiResponse({ status: 200, description: 'Room deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Room not found' })
+  @ApiResponse({ status: 403, description: 'Only OWNER or WARDEN can perform this action' })
+  deleteRoom(
+    @Param('id') id: string,
+    @CurrentUser() _user: TokenPayload,
+  ) {
+    return this.roomsService.deleteRoom(id);
   }
 }

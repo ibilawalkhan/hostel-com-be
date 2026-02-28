@@ -1,72 +1,289 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
-import type { InitiateRoomsDto } from './dto/initiate-rooms.dto';
-import type {
-  InitiateRoomsResponse,
-  RoomConfiguration,
-  BedConfiguration,
-} from './interfaces/initiate-rooms.interface';
+import type { ListRoomsQueryDto } from './dto/list-rooms-query.dto';
+import { RoomsRepository } from './rooms.repository';
+import { TransactionHelper } from '../common/database/transaction.helper';
+import { LoggerService } from '../common/services/logger.service';
+import { roomStatusFromBeds } from './helper/room.helper';
 
-const BED_LETTERS = ['A', 'B', 'C', 'D', 'E'];
+function roomTypeFromBedsCount(n: number): '1' | '2' | '3' | '4' | '5' {
+  const k = Math.min(5, Math.max(1, n));
+  return String(k) as '1' | '2' | '3' | '4' | '5';
+}
 
 @Injectable()
 export class RoomsService {
-  initiateRooms(dto: InitiateRoomsDto): InitiateRoomsResponse {
-    const { room_type, total_rooms, rooms } = dto;
+  constructor(
+    private readonly roomsRepository: RoomsRepository,
+    private readonly transactionHelper: TransactionHelper,
+    private readonly logger: LoggerService,
+  ) {}
 
-    if (rooms.length !== total_rooms) {
-      throw new BadRequestException(
-        `total_rooms (${total_rooms}) must match rooms array length (${rooms.length})`,
-      );
-    }
+  async createRooms(dto: CreateRoomDto) {
+    const { hostel_kuid, rooms, room_photos_urls, washroom_photos_urls } = dto;
+    this.logger.log(`Creating rooms for hostel ${hostel_kuid}`, 'RoomsService');
 
-    const result: RoomConfiguration[] = rooms.map((room, i) => {
-      const roomIndex = i + 1;
+    const roomPhotos = room_photos_urls ?? [];
+    const washroomPhotos = washroom_photos_urls ?? [];
 
-      const beds_configuration: BedConfiguration[] = [];
+    const created = await this.transactionHelper.executeInTransaction(
 
-      for (let b = 0; b < room_type; b++) {
+      async (client) => {
+        const createdRooms: Array<{ room: any; washroom?: any }> = [];
 
-        const letter = BED_LETTERS[b];
+        for (const room of rooms) {
+          const status = roomStatusFromBeds(room.beds);
+          const roomType = roomTypeFromBedsCount(room.beds.length);
+
+          this.logger.log(`Creating room ${room.room_no} with ${room.beds.length} beds and ${room.room_facilities?.length} room facilities`, 'RoomsService');
+
+          const roomRow = await this.roomsRepository.insertRoom(
+            client,
+            hostel_kuid,
+            room,
+            roomType,
+            status,
+            roomPhotos,
+          );
+          this.logger.log(`Room ${room.room_no} created successfully`, 'RoomsService');
+
+          for (const bed of room.beds) {
+            await this.roomsRepository.insertBed(client, roomRow.kuid, bed);
+            this.logger.log(`Bed ${bed.bedId} created successfully`, 'RoomsService');
+          }
+
+          const roomFacilityKuids = room.room_facilities ?? [];
+
+          if (roomFacilityKuids.length) {
+            await this.roomsRepository.insertRoomFacilities(
+              client,
+              roomRow.kuid,
+              roomFacilityKuids,
+            );
+            this.logger.log(`Room facilities ${roomFacilityKuids.join(', ')} created successfully`, 'RoomsService');
+          }
+
+          let washroomRow: { kuid: string } | undefined;
+
+          if (room.attached_washroom) {
+            washroomRow = await this.roomsRepository.insertWashroom(
+              client,
+              roomRow.kuid,
+              washroomPhotos,
+            );
+
+            const washroomFacilityKuids = room.washroom_facilities ?? [];
+            if (washroomFacilityKuids.length) {
+              await this.roomsRepository.insertWashroomFacilities(
+                client,
+                washroomRow.kuid,
+                washroomFacilityKuids,
+              );
+              this.logger.log(`Washroom facilities ${washroomFacilityKuids.join(', ')} created successfully`, 'RoomsService');
+            }
+          }
+
+          createdRooms.push({ room: roomRow, washroom: washroomRow });
+        }
+        return createdRooms;
+      },
+    );
+
+    this.logger.log(
+      `Created ${created.length} room(s) for hostel ${hostel_kuid}`,
+      'RoomsService',
+    );
+
+    return {
+      message: 'Rooms created successfully',
+      created_rooms: created.length,
+      rooms: created,
+    };
+  }
+
+  async updateRoom(roomKuid: string, dto: UpdateRoomDto) {
+
+    const updated = await this.transactionHelper.executeInTransaction(
+      
+      async (client) => {
+
+        const existing = await this.roomsRepository.findRoomByKuid(client, roomKuid);
+
+        if (!existing) {
+          throw new NotFoundException('Room not found');
+        }
+
+        let roomType: '1' | '2' | '3' | '4' | '5' | undefined;
+        let status: 'EMPTY' | 'PARTIAL_OCCUPIED' | 'FULL' | undefined;
+        if (dto.beds !== undefined) {
+          roomType = roomTypeFromBedsCount(dto.beds.length);
+          status = roomStatusFromBeds(dto.beds);
+        }
+
+        const roomUpdates: Parameters<RoomsRepository['updateRoom']>[2] = {};
         
-        beds_configuration.push({
-          bed_id: `${roomIndex}-Bed-${letter}`,
-          occupancy_status: 'Available',
-          monthly_rent: null,
-        });
+        if (dto.room_no !== undefined) roomUpdates.room_no = dto.room_no;
+        
+        if (dto.floor_no !== undefined) roomUpdates.floor_no = dto.floor_no;
+        
+        if (dto.room_size !== undefined) roomUpdates.room_size = dto.room_size;
+        
+        if (roomType !== undefined) roomUpdates.room_type = roomType;
+        
+        if (status !== undefined) roomUpdates.status = status;
+        
+        if (dto.room_photos_urls !== undefined) roomUpdates.photos = dto.room_photos_urls;
 
+        if (Object.keys(roomUpdates).length > 0) {
+          await this.roomsRepository.updateRoom(client, roomKuid, roomUpdates);
+        }
+
+        if (dto.beds !== undefined) {
+          await this.roomsRepository.deleteBedsByRoomKuid(client, roomKuid);
+          for (const bed of dto.beds) {
+            await this.roomsRepository.insertBed(client, roomKuid, bed);
+          }
+        }
+
+        if (dto.room_facilities !== undefined) {
+          await this.roomsRepository.deleteRoomFacilitiesByRoomKuid(client, roomKuid);
+          if (dto.room_facilities.length) {
+            await this.roomsRepository.insertRoomFacilities(
+              client,
+              roomKuid,
+              dto.room_facilities,
+            );
+          }
+        }
+
+        const washroomPhotos = dto.washroom_photos_urls ?? null;
+        if (dto.attached_washroom !== undefined) {
+          const existingWashroom = await this.roomsRepository.findWashroomByRoomKuid(
+            client,
+            roomKuid,
+          );
+          if (dto.attached_washroom) {
+            if (existingWashroom) {
+              if (washroomPhotos) {
+                await this.roomsRepository.updateWashroom(
+                  client,
+                  existingWashroom.kuid,
+                  washroomPhotos,
+                );
+              }
+              if (dto.washroom_facilities !== undefined) {
+                await this.roomsRepository.deleteWashroomFacilitiesByWashroomKuid(
+                  client,
+                  existingWashroom.kuid,
+                );
+                if (dto.washroom_facilities.length) {
+                  await this.roomsRepository.insertWashroomFacilities(
+                    client,
+                    existingWashroom.kuid,
+                    dto.washroom_facilities,
+                  );
+                }
+              }
+            } else {
+              const washroomRow = await this.roomsRepository.insertWashroom(
+                client,
+                roomKuid,
+                washroomPhotos ?? [],
+              );
+              const washroomFacilityKuids = dto.washroom_facilities ?? [];
+              if (washroomFacilityKuids.length) {
+                await this.roomsRepository.insertWashroomFacilities(
+                  client,
+                  washroomRow.kuid,
+                  washroomFacilityKuids,
+                );
+              }
+            }
+          } else {
+            await this.roomsRepository.deleteWashroomByRoomKuid(client, roomKuid);
+          }
+        } else if (washroomPhotos) {
+          const existingWashroom = await this.roomsRepository.findWashroomByRoomKuid(
+            client,
+            roomKuid,
+          );
+          if (existingWashroom) {
+            await this.roomsRepository.updateWashroom(
+              client,
+              existingWashroom.kuid,
+              washroomPhotos,
+            );
+          }
+        } else if (dto.washroom_facilities !== undefined) {
+          const existingWashroom = await this.roomsRepository.findWashroomByRoomKuid(
+            client,
+            roomKuid,
+          );
+          if (existingWashroom) {
+            await this.roomsRepository.deleteWashroomFacilitiesByWashroomKuid(
+              client,
+              existingWashroom.kuid,
+            );
+            if (dto.washroom_facilities.length) {
+              await this.roomsRepository.insertWashroomFacilities(
+                client,
+                existingWashroom.kuid,
+                dto.washroom_facilities,
+              );
+            }
+          }
+        }
+
+        return this.roomsRepository.findRoomByKuid(client, roomKuid);
+      },
+    );
+
+    this.logger.log(`Room ${roomKuid} updated`, 'RoomsService');
+    return { message: 'Room updated successfully', room: updated };
+  }
+
+  async deleteRoom(roomKuid: string) {
+
+    await this.transactionHelper.executeInTransaction(async (client) => {
+
+      const existing = await this.roomsRepository.findRoomByKuid(client, roomKuid);
+      if (!existing) {
+        throw new NotFoundException('Room not found');
       }
-      return {
-        room_type,
-        room_no: room.room_no,
-        floor_no: room.floor_no,
-        room_size: room.room_size,
-        attached_washroom: room.attached_washroom,
-        beds_configuration,
-      };
+
+      await this.roomsRepository.deleteRoom(client, roomKuid);
     });
-
-    return { rooms: result };
+    this.logger.log(`Room ${roomKuid} deleted`, 'RoomsService');
+    return { message: 'Room deleted successfully' };
   }
 
-  create(createRoomDto: CreateRoomDto) {
-    return 'This action adds a new room';
+  async listAllRooms(query: ListRoomsQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const hostelKuid = query.hostel_kuid ?? null;
+
+    const { rows, total } = await this.roomsRepository.findRoomsPaginated(
+      hostelKuid,
+      page,
+      limit,
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      rooms: rows,
+      pagination: {
+        total,
+        page,
+        limit,
+        total_pages: totalPages,
+      },
+    };
   }
 
-  findAll() {
-    return `This action returns all rooms`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} room`;
-  }
-
-  update(id: number, updateRoomDto: UpdateRoomDto) {
-    return `This action updates a #${id} room`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} room`;
+  async getRoomBedStats(hostelKuid?: string) {
+    const stats = await this.roomsRepository.getRoomBedStats(hostelKuid ?? null);
+    return stats;
   }
 }

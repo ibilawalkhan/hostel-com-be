@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Pool } from 'pg';
-import { FacilityRow } from './interfaces/metadata.interfaces';
+import { FacilityRow } from '../interfaces/metadata.interfaces';
 
 @Injectable()
 export class LookupRepository {

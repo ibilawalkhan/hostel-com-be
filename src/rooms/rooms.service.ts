@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import type { ListRoomsQueryDto } from './dto/list-rooms-query.dto';
-import { RoomsRepository } from './rooms.repository';
+import { RoomsRepository } from './repository/rooms.repository';
 import { TransactionHelper } from '../common/database/transaction.helper';
 import { LoggerService } from '../common/services/logger.service';
 import { roomStatusFromBeds } from './helper/room.helper';
@@ -285,5 +285,13 @@ export class RoomsService {
   async getRoomBedStats(hostelKuid?: string) {
     const stats = await this.roomsRepository.getRoomBedStats(hostelKuid ?? null);
     return stats;
+  }
+
+  async getRoomDetails(roomKuid: string) {
+    const details = await this.roomsRepository.findRoomDetailsByKuid(roomKuid);
+    if (!details) {
+      throw new NotFoundException('Room not found');
+    }
+    return details;
   }
 }

@@ -45,6 +45,16 @@ export class RoomsController {
     return this.roomsService.getRoomBedStats(hostelKuid);
   }
 
+  @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'WARDEN')
+  @ApiOperation({ summary: 'Owner/Warden: view room details by room kuid' })
+  @ApiResponse({ status: 200, description: 'Room with beds, washroom (if any), room_facilities, washroom_facilities' })
+  @ApiResponse({ status: 404, description: 'Room not found' })
+  getRoomDetails(@Param('id') id: string) {
+    return this.roomsService.getRoomDetails(id);
+  }
+
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(RolesGuard)

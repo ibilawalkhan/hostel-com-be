@@ -1,7 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
 import type { CreateRoomDto, RoomItemCreateDto, BedItemDto } from './dto/create-room.dto';
-import type { RoomListItemRow, RoomRow } from './interfaces/rooms.interface';
+import type {
+  BedRow,
+  RoomDetailsResponse,
+  RoomListItemRow,
+  RoomRow,
+  WashroomRow,
+} from './interfaces/rooms.interface';
 import { occupancyToEnum } from './helper/room.helper';
 
 @Injectable()
@@ -257,6 +263,7 @@ export class RoomsRepository {
 
     const result = await this.pool.query(
       `SELECT
+         r.kuid,
          r.room_no,
          r.room_type AS type,
          (r.room_type::int) AS capacity,
@@ -306,7 +313,53 @@ export class RoomsRepository {
       occupied_beds: row?.occupied_beds ?? 0,
       available_beds: row?.available_beds ?? 0,
     };
-    
+  }
+
+  async findRoomDetailsByKuid(roomKuid: string): Promise<RoomDetailsResponse | null> {
+    const roomResult = await this.pool.query(
+      `SELECT kuid, hostel_kuid, room_type, room_no, floor_no, room_size, status, photos, is_active, created_at, updated_at
+       FROM room WHERE kuid = $1 AND is_active = true`,
+      [roomKuid],
+    );
+    const room = roomResult.rows[0] as RoomRow | undefined;
+    if (!room) return null;
+
+    const bedsResult = await this.pool.query(
+      `SELECT kuid, room_kuid, bed_no, monthly_rent, bed_photos_url, bed_occupied_enum, is_active, created_at, updated_at
+       FROM bed WHERE room_kuid = $1 AND is_active = true ORDER BY bed_no`,
+      [roomKuid],
+    );
+    const beds = (bedsResult.rows || []) as BedRow[];
+
+    const washroomResult = await this.pool.query(
+      `SELECT kuid, room_kuid, name, photos, is_active, created_at, updated_at
+       FROM washroom WHERE room_kuid = $1 LIMIT 1`,
+      [roomKuid],
+    );
+    const washroom = (washroomResult.rows[0] as WashroomRow | undefined) ?? null;
+
+    const roomFacResult = await this.pool.query(
+      `SELECT facility_kuid FROM room_facility WHERE room_kuid = $1`,
+      [roomKuid],
+    );
+    const room_facilities = (roomFacResult.rows || []).map((r: { facility_kuid: string }) => r.facility_kuid);
+
+    let washroom_facilities: string[] = [];
+    if (washroom) {
+      const wfResult = await this.pool.query(
+        `SELECT facility_kuid FROM washroom_facilities WHERE washroom_kuid = $1`,
+        [washroom.kuid],
+      );
+      washroom_facilities = (wfResult.rows || []).map((r: { facility_kuid: string }) => r.facility_kuid);
+    }
+
+    return {
+      room,
+      beds,
+      washroom,
+      room_facilities,
+      washroom_facilities,
+    };
   }
 }
 

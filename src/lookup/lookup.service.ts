@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { LookupRepository } from './lookup.repository';
+import { LookupRepository } from './repository/lookup.repository';
 
 @Injectable()
 export class LookupService {

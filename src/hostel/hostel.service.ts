@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateHostelDto } from './dto/create-hostel.dto';
 import { UpdateHostelDto } from './dto/update-hostel.dto';
-import { HostelRepository } from './hostel.repository';
+import { HostelRepository } from './repository/hostel.repository';
 import { TransactionHelper } from '../common/database/transaction.helper';
 import { LoggerService } from '../common/services/logger.service';
 

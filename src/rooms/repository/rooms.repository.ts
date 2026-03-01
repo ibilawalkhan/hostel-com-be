@@ -1,14 +1,14 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
-import type { CreateRoomDto, RoomItemCreateDto, BedItemDto } from './dto/create-room.dto';
+import type { CreateRoomDto, RoomItemCreateDto, BedItemDto } from '../dto/create-room.dto';
 import type {
   BedRow,
   RoomDetailsResponse,
   RoomListItemRow,
   RoomRow,
   WashroomRow,
-} from './interfaces/rooms.interface';
-import { occupancyToEnum } from './helper/room.helper';
+} from '../interfaces/rooms.interface';
+import { occupancyToEnum } from '../helper/room.helper';
 
 @Injectable()
 export class RoomsRepository {

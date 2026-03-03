@@ -73,5 +73,22 @@ export class RoleRepository {
     );
     return result.rows;
   }
+
+  async updateWardenAssignment(
+    client: PoolClient,
+    roleKuid: string,
+    data: { assigned_hostel_kuid?: string | null; hostel_branch_kuid?: string | null },
+  ): Promise<Role> {
+    const result = await client.query(RoleQueries.UPDATE_ROLE_ASSIGNMENT, [
+      data.assigned_hostel_kuid ?? null,
+      data.hostel_branch_kuid ?? null,
+      roleKuid,
+    ]);
+    return result.rows[0];
+  }
+
+  async deletePermissionsByRoleKuid(client: PoolClient, roleKuid: string): Promise<void> {
+    await client.query(RoleQueries.DELETE_ROLE_PERMISSIONS_BY_ROLE_KUID, [roleKuid]);
+  }
 }
 

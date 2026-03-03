@@ -294,4 +294,5 @@ export class RoomsService {
     }
     return details;
   }
+
 }

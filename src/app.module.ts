@@ -9,6 +9,8 @@ import { LookupModule } from './lookup/lookup.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { HostelModule } from './hostel/hostel.module';
 import { RoomsModule } from './rooms/rooms.module';
+import { BedModule } from './bed/bed.module';
+import { WardenModule } from './warden/warden.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { RoomsModule } from './rooms/rooms.module';
     LookupModule,
     HostelModule,
     RoomsModule,
+    BedModule,
+    WardenModule,
   ],
   controllers: [],
   providers: [

@@ -120,4 +120,17 @@ export class UserRepository {
     ]);
     return result.rows[0];
   }
+
+  async updateProfile(
+    client: PoolClient,
+    userKuid: string,
+    data: { full_name?: string | null; phone?: string | null },
+  ): Promise<User> {
+    const result = await client.query(UserQueries.UPDATE_USER_PROFILE, [
+      data.full_name ?? null,
+      data.phone ?? null,
+      userKuid,
+    ]);
+    return result.rows[0];
+  }
 }

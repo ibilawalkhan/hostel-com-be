@@ -51,12 +51,16 @@ export class HostelService {
     };
   }
 
-  findAll() {
-    return `This action returns all hostel`;
+  async listAllHostels() {
+    return this.hostelRepository.listAllHostels();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} hostel`;
+  async searchHostels(params: { name?: string; branch?: string }) {
+    return this.hostelRepository.searchHostels(params);
+  }
+
+  async getHostelStats(ownerKuid: string) {
+    return this.hostelRepository.getHostelStats(ownerKuid);
   }
 
   async update(
@@ -109,7 +113,4 @@ export class HostelService {
     };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} hostel`;
-  }
 }

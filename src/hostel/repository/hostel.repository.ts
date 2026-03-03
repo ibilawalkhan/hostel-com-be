@@ -1,31 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
-import { CreateHostelDto } from './dto/create-hostel.dto';
-import { UpdateHostelDto } from './dto/update-hostel.dto';
-
-export interface HostelRow {
-  kuid: string;
-  owner_kuid: string;
-  name: string;
-  city_kuid: string | null;
-  area_kuid: string | null;
-  full_address_text: string | null;
-  latitude: string | null;
-  longitude: string | null;
-  near_by: string | null;
-  gender_allowed: string | null;
-  type: string | null;
-  visitor_policy: string | null;
-  smoking: string | null;
-  admission_photos_url: string[] | null;
-  reception_photos_url: string[] | null;
-  mess_area_photos_url: string[] | null;
-  parking_type: string | null;
-  security_deposit: string | null;
-  admission_fee: string | null;
-  created_at: Date;
-  updated_at: Date;
-}
+import { CreateHostelDto } from '../dto/create-hostel.dto';
+import { UpdateHostelDto } from '../dto/update-hostel.dto';
+import { HostelRow, ListHostelItem, HostelStats } from '../interface/hostel.interface';
+import { HostelQueries } from '../queries/hostel.queries';
 
 @Injectable()
 export class HostelRepository {
@@ -35,13 +13,7 @@ export class HostelRepository {
     client: PoolClient,
     hostelKuid: string,
   ): Promise<HostelRow | null> {
-    const result = await client.query(
-      `SELECT *
-       FROM hostel
-       WHERE kuid = $1`,
-      [hostelKuid],
-    );
-
+    const result = await client.query(HostelQueries.FIND_BY_KUID, [hostelKuid]);
     return result.rows[0] || null;
   }
 
@@ -50,56 +22,26 @@ export class HostelRepository {
     ownerKuid: string,
     dto: CreateHostelDto,
   ): Promise<HostelRow> {
-    const result = await client.query(
-      `INSERT INTO hostel (
-        owner_kuid,
-        name,
-        city_kuid,
-        area_kuid,
-        full_address_text,
-        latitude,
-        longitude,
-        near_by,
-        gender_allowed,
-        type,
-        visitor_policy,
-        smoking,
-        admission_photos_url,
-        reception_photos_url,
-        mess_area_photos_url,
-        parking_type,
-        security_deposit,
-        admission_fee
-      )
-      VALUES (
-        $1, $2, $3, $4, $5,
-        $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15,
-        $16, $17, $18
-      )
-      RETURNING *`,
-      [
-        ownerKuid,
-        dto.hostel_name,
-        dto.city_kuid,
-        dto.area_kuid,
-        dto.full_address,
-        dto.latitude,
-        dto.longitude,
-        dto.nearby,
-        dto.gender,
-        dto.hostel_type,
-        dto.visitor_policy,
-        dto.smoking_policy,
-        dto.exterrior_photos_url ?? [],
-        dto.entrance_photos_urls ?? [],
-        dto.messa_area_photos_urls ?? [],
-        dto.parking,
-        dto.security_deposit ?? null,
-        dto.admission_fee ?? null,
-      ],
-    );
-
+    const result = await client.query(HostelQueries.INSERT_HOSTEL, [
+      ownerKuid,
+      dto.hostel_name,
+      dto.city_kuid,
+      dto.area_kuid,
+      dto.full_address,
+      dto.latitude,
+      dto.longitude,
+      dto.nearby,
+      dto.gender,
+      dto.hostel_type,
+      dto.visitor_policy,
+      dto.smoking_policy,
+      dto.exterrior_photos_url ?? [],
+      dto.entrance_photos_urls ?? [],
+      dto.messa_area_photos_urls ?? [],
+      dto.parking,
+      dto.security_deposit ?? null,
+      dto.admission_fee ?? null,
+    ]);
     return result.rows[0];
   }
 
@@ -108,11 +50,7 @@ export class HostelRepository {
     hostelKuid: string,
     branchNo: string,
   ): Promise<void> {
-    await client.query(
-      `INSERT INTO hostel_branch (hostel_kuid, branch_number)
-       VALUES ($1, $2)`,
-      [hostelKuid, branchNo],
-    );
+    await client.query(HostelQueries.INSERT_HOSTEL_BRANCH, [hostelKuid, branchNo]);
   }
 
   async updateHostel(
@@ -193,13 +131,9 @@ export class HostelRepository {
     values.push(existing.kuid);
 
     const result = await client.query(
-      `UPDATE hostel
-       SET ${sets.join(', ')}, updated_at = NOW()
-       WHERE kuid = $${idx}
-       RETURNING *`,
+      `UPDATE hostel SET ${sets.join(', ')}, updated_at = NOW() WHERE kuid = $${idx} RETURNING *`,
       values,
     );
-
     return result.rows[0];
   }
 
@@ -209,13 +143,8 @@ export class HostelRepository {
     facilityKuids: string[],
   ): Promise<void> {
     if (!facilityKuids?.length) return;
-
-    const query = `INSERT INTO hostel_facility (hostel_kuid, facility_kuid)
-                   VALUES ($1, $2)
-                   ON CONFLICT (hostel_kuid, facility_kuid) DO NOTHING`;
-
     for (const facilityKuid of facilityKuids) {
-      await client.query(query, [hostelKuid, facilityKuid]);
+      await client.query(HostelQueries.INSERT_HOSTEL_FACILITY, [hostelKuid, facilityKuid]);
     }
   }
 
@@ -223,13 +152,7 @@ export class HostelRepository {
     client: PoolClient,
     hostelKuid: string,
   ): Promise<string[]> {
-    const result = await client.query(
-      `SELECT facility_kuid
-       FROM hostel_facility
-       WHERE hostel_kuid = $1`,
-      [hostelKuid],
-    );
-
+    const result = await client.query(HostelQueries.FIND_FACILITY_KUIDS_BY_HOSTEL, [hostelKuid]);
     return result.rows.map((r) => r.facility_kuid as string);
   }
 
@@ -260,13 +183,7 @@ export class HostelRepository {
     if (isSame) {
       return;
     }
-
-    await client.query(
-      `DELETE FROM hostel_facility
-       WHERE hostel_kuid = $1`,
-      [hostelKuid],
-    );
-
+    await client.query(HostelQueries.DELETE_HOSTEL_FACILITIES, [hostelKuid]);
     await this.addHostelFacilities(client, hostelKuid, facilityKuids);
   }
 
@@ -278,15 +195,7 @@ export class HostelRepository {
     if (branchNo === undefined) {
       return;
     }
-
-    const result = await client.query(
-      `SELECT kuid, branch_number
-       FROM hostel_branch
-       WHERE hostel_kuid = $1
-       LIMIT 1`,
-      [hostelKuid],
-    );
-
+    const result = await client.query(HostelQueries.SELECT_HOSTEL_BRANCH, [hostelKuid]);
     const existing = result.rows[0] as
       | { kuid: string; branch_number: string }
       | undefined;
@@ -295,17 +204,48 @@ export class HostelRepository {
       await this.createHostelBranch(client, hostelKuid, branchNo);
       return;
     }
-
     if (existing.branch_number === branchNo) {
       return;
     }
+    await client.query(HostelQueries.UPDATE_HOSTEL_BRANCH, [branchNo, hostelKuid]);
+  }
 
-    await client.query(
-      `UPDATE hostel_branch
-       SET branch_number = $1
-       WHERE hostel_kuid = $2`,
-      [branchNo, hostelKuid],
+  async listAllHostels(): Promise<ListHostelItem[]> {
+    const result = await this.pool.query(
+      `${HostelQueries.LIST_HOSTELS_BODY.trim()}\n    ORDER BY h.name`,
     );
+    return result.rows as ListHostelItem[];
+  }
+
+  async searchHostels(params: { name?: string; branch?: string }): Promise<ListHostelItem[]> {
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+    if (params.name?.trim()) {
+      conditions.push(`h.name ILIKE $${idx}`);
+      values.push(`%${params.name.trim()}%`);
+      idx += 1;
+    }
+    if (params.branch?.trim()) {
+      conditions.push(`h.kuid IN (SELECT hostel_kuid FROM hostel_branch WHERE branch_number ILIKE $${idx})`);
+      values.push(`%${params.branch.trim()}%`);
+      idx += 1;
+    }
+    const whereClause = conditions.length > 0 ? `\n    WHERE ${conditions.join(' AND ')}` : '';
+    const query = `${HostelQueries.LIST_HOSTELS_BODY.trim()}${whereClause}\n    ORDER BY h.name`;
+    const result = await this.pool.query(query, values);
+    return result.rows as ListHostelItem[];
+  }
+
+  /** Aggregate stats for an owner: total hostels, total rooms, total beds, avg occupancy (%) */
+  async getHostelStats(ownerKuid: string): Promise<HostelStats> {
+    const result = await this.pool.query(HostelQueries.GET_HOSTEL_STATS, [ownerKuid]);
+    const row = result.rows[0];
+    return {
+      total_hostels: row?.total_hostels ?? 0,
+      total_rooms: row?.total_rooms ?? 0,
+      total_beds: row?.total_beds ?? 0,
+      avg_occupancy: Number(row?.avg_occupancy ?? 0),
+    };
   }
 }
-

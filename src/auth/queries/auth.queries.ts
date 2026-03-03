@@ -96,6 +96,13 @@ export const UserQueries = {
     RETURNING kuid, full_name, phone, email, cnic_number, cnic_front, cnic_back, selfie, is_active, created_at, updated_at
   `,
 
+  UPDATE_USER_PROFILE: `
+    UPDATE "user"
+    SET full_name = COALESCE($1, full_name), phone = COALESCE($2, phone), updated_at = NOW()
+    WHERE kuid = $3
+    RETURNING kuid, full_name, phone, email, cnic_number, cnic_front, cnic_back, selfie, is_active, created_at, updated_at
+  `,
+
   INSERT_USER: `
     INSERT INTO "user" (full_name, phone, email, password, cnic_number, cnic_front, cnic_back) 
     VALUES ($1, $2, $3, $4, $5, $6, $7) 

@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
 import { CreateHostelDto } from '../dto/create-hostel.dto';
 import { UpdateHostelDto } from '../dto/update-hostel.dto';
-import { HostelRow, ListHostelItem, HostelStats } from '../interface/hostel.interface';
+import { HostelRow, ListHostelItem, HostelStats, FilteredRoomItem } from '../interface/hostel.interface';
 import { HostelQueries } from '../queries/hostel.queries';
 
 @Injectable()
@@ -237,7 +237,6 @@ export class HostelRepository {
     return result.rows as ListHostelItem[];
   }
 
-  /** Aggregate stats for an owner: total hostels, total rooms, total beds, avg occupancy (%) */
   async getHostelStats(ownerKuid: string): Promise<HostelStats> {
     const result = await this.pool.query(HostelQueries.GET_HOSTEL_STATS, [ownerKuid]);
     const row = result.rows[0];
@@ -247,5 +246,90 @@ export class HostelRepository {
       total_beds: row?.total_beds ?? 0,
       avg_occupancy: Number(row?.avg_occupancy ?? 0),
     };
+  }
+
+  async deleteHostel(client: PoolClient, hostelKuid: string): Promise<void> {
+    await client.query(HostelQueries.DELETE_HOSTEL, [hostelKuid]);
+  }
+
+  async findRoomsWithFilters(params: {
+    hostel_kuid?: string;
+    branch_kuid?: string;
+    room_type?: string;
+    status?: string;
+    floor_no?: string;
+    min_price?: number;
+    max_price?: number;
+    availability?: string;
+    room_kuid?: string;
+  }): Promise<FilteredRoomItem[]> {
+
+    const conditions: string[] = ['r.is_active = true'];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (params.branch_kuid) {
+      conditions.push(`r.hostel_kuid = (SELECT hostel_kuid FROM hostel_branch WHERE kuid = $${idx})`);
+      values.push(params.branch_kuid);
+      idx += 1;
+    } else if (params.hostel_kuid) {
+      conditions.push(`r.hostel_kuid = $${idx}`);
+      values.push(params.hostel_kuid);
+      idx += 1;
+    }
+
+    if (params.room_type) {
+      conditions.push(`r.room_type = $${idx}`);
+      values.push(params.room_type);
+      idx += 1;
+    }
+
+    if (params.status && params.status !== 'ALL_STATUS') {
+      conditions.push(`r.status = $${idx}`);
+      values.push(params.status);
+      idx += 1;
+    }
+
+    if (params.floor_no !== undefined && params.floor_no !== '') {
+      conditions.push(`r.floor_no = $${idx}`);
+      values.push(params.floor_no);
+      idx += 1;
+    }
+
+    if (params.room_kuid) {
+      conditions.push(`r.kuid = $${idx}`);
+      values.push(params.room_kuid);
+      idx += 1;
+    }
+
+    if (params.min_price !== undefined && params.min_price != null) {
+      conditions.push(`COALESCE(b.price_per_bed, 0) >= $${idx}`);
+      values.push(params.min_price);
+      idx += 1;
+    }
+
+    if (params.max_price !== undefined && params.max_price != null) {
+      conditions.push(`COALESCE(b.price_per_bed, 0) <= $${idx}`);
+      values.push(params.max_price);
+      idx += 1;
+    }
+
+    if (params.availability && params.availability !== 'ALL') {
+
+      if (params.availability === 'HAS_EMPTY_BEDS') {
+        conditions.push('COALESCE(b.empty_count, 0) > 0');
+      } else if (params.availability === 'FULLY_OCCUPIED') {
+        conditions.push(
+          'COALESCE(b.empty_count, 0) = 0 AND (COALESCE(b.occupied, 0) + COALESCE(b.reserved_count, 0)) > 0',
+        );
+      }
+      
+    }
+
+    const query = `${HostelQueries.FIND_ROOMS_WITH_FILTERS_BODY.trim()}\n      WHERE ${conditions.join(' AND ')}\n      ORDER BY r.room_no`;
+    
+    const result = await this.pool.query(query, values);
+
+    return result.rows as FilteredRoomItem[];
   }
 }

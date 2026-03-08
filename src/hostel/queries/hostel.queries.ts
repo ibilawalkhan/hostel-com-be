@@ -35,6 +35,7 @@ export const HostelQueries = {
 
   LIST_HOSTELS_BODY: `
     SELECT
+      h.kuid AS hostel_kuid,
       h.name AS hostel_name,
       h.status,
       h.verification_badge,
@@ -81,5 +82,33 @@ export const HostelQueries = {
     LEFT JOIN room r ON r.hostel_kuid = h.kuid AND r.is_active = true
     LEFT JOIN bed b ON b.room_kuid = r.kuid AND b.is_active = true
     WHERE h.owner_kuid = $1
+  `,
+
+  DELETE_HOSTEL: `
+    DELETE FROM hostel WHERE kuid = $1
+  `,
+
+  FIND_ROOMS_WITH_FILTERS_BODY: `
+    SELECT
+      r.kuid,
+      r.hostel_kuid,
+      r.room_no,
+      r.room_type AS type,
+      (r.room_type::int) AS capacity,
+      COALESCE(b.occupied, 0)::int AS occupied,
+      COALESCE(b.empty_count, 0)::int AS empty_count,
+      COALESCE(b.reserved_count, 0)::int AS reserved_count,
+      r.status,
+      b.price_per_bed
+    FROM room r
+    LEFT JOIN LATERAL (
+      SELECT
+        count(*) FILTER (WHERE bed_occupied_enum = 'OCCUPIED') AS occupied,
+        count(*) FILTER (WHERE bed_occupied_enum = 'AVAILABLE') AS empty_count,
+        count(*) FILTER (WHERE bed_occupied_enum = 'RESERVED') AS reserved_count,
+        round(avg(monthly_rent)::numeric, 2) AS price_per_bed
+      FROM bed
+      WHERE room_kuid = r.kuid AND is_active = true
+    ) b ON true
   `,
 } as const;

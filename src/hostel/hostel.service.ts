@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { CreateHostelDto } from './dto/create-hostel.dto';
 import { UpdateHostelDto } from './dto/update-hostel.dto';
 import { HostelRepository } from './repository/hostel.repository';
@@ -63,6 +63,20 @@ export class HostelService {
     return this.hostelRepository.getHostelStats(ownerKuid);
   }
 
+  async applyFilters(params: {
+    hostel_kuid?: string;
+    branch_kuid?: string;
+    room_type?: string;
+    status?: string;
+    floor_no?: string;
+    min_price?: number;
+    max_price?: number;
+    availability?: string;
+    room_kuid?: string;
+  }) {
+    return this.hostelRepository.findRoomsWithFilters(params);
+  }
+
   async update(
     hostelKuid: string,
     updateHostelDto: UpdateHostelDto,
@@ -113,4 +127,28 @@ export class HostelService {
     };
   }
 
+  async deleteHostel(hostelKuid: string, ownerKuid: string) {
+
+    await this.transactionHelper.executeInTransaction(async (client) => {
+
+      const hostel = await this.hostelRepository.findByKuid(client, hostelKuid);
+      if (!hostel) {
+        throw new NotFoundException('Hostel not found');
+      }
+
+      if (hostel.owner_kuid !== ownerKuid) {
+        throw new ForbiddenException('Only the owner can delete this hostel');
+      }
+
+      await this.hostelRepository.deleteHostel(client, hostelKuid);
+    });
+
+    this.logger.log(`Hostel ${hostelKuid} deleted by owner ${ownerKuid}`, 'HostelService');
+
+    return {
+      message: 'Hostel deleted successfully',
+      hostel_kuid: hostelKuid,
+    };
+    
+  }
 }

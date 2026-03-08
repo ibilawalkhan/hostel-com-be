@@ -43,5 +43,13 @@ export const RoleQueries = {
   DELETE_ROLE_PERMISSIONS_BY_ROLE_KUID: `
     DELETE FROM role_permission WHERE role_kuid = $1
   `,
+
+  DELETE_ROLE_BY_KUID: `
+    DELETE FROM role WHERE kuid = $1
+  `,
+
+  DELETE_USER: `
+    DELETE FROM "user" WHERE kuid = $1
+  `,
 } as const;
 

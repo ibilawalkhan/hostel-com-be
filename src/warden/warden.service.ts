@@ -20,7 +20,7 @@ export class WardenService {
     private readonly passwordService: PasswordService,
     private readonly logger: LoggerService,
     private readonly transactionHelper: TransactionHelper,
-  ) {}
+  ) { }
 
   async addNewWarden(data: AddNewWardenDto) {
     const {
@@ -94,13 +94,17 @@ export class WardenService {
         temporary_password: result.temporaryPassword,
         permissions_assigned: permission_kuids.length,
       };
-      
+
     } catch (error) {
       handleSignupError(error, phone_number, this.logger);
     }
   }
 
-  async getWardenList(ownerKuid: string): Promise<WardenListItem[]> {
+  async getWardenList(ownerKuid: string): Promise<{
+    wardens: WardenListItem[];
+    total_wardens: number;
+    active_wardens: number;
+  }> {
     const rows = await this.wardenRepository.findWardensByOwnerKuid(ownerKuid);
 
     const roleKuids = [...new Set(rows.map((r) => r.role_kuid))];
@@ -116,7 +120,8 @@ export class WardenService {
       {},
     );
 
-    return rows.map((r) => ({
+    const wardens: WardenListItem[] = rows.map((r) => ({
+      kuid: r.user_kuid,
       name: r.full_name,
       status: r.is_active ? 'active' : 'inactive',
       email: r.email ?? null,
@@ -126,6 +131,11 @@ export class WardenService {
       permissions: permissionsByRole[r.role_kuid] ?? [],
       created_at: r.created_at.toISOString(),
     }));
+
+    const total_wardens = wardens.length;
+    const active_wardens = wardens.filter((w) => w.status === 'active').length;
+
+    return { total_wardens, active_wardens, wardens };
   }
 
   async editWarden(wardenUserKuid: string, ownerKuid: string, dto: UpdateWardenDto) {
@@ -175,6 +185,28 @@ export class WardenService {
     this.logger.log(`Warden ${wardenUserKuid} updated by owner ${ownerKuid}`, 'WardenService');
     return {
       message: 'Warden updated successfully',
+      user_kuid: wardenUserKuid,
+    };
+  }
+
+  async deleteWarden(wardenUserKuid: string, ownerKuid: string) {
+    const warden = await this.wardenRepository.findWardenByUserKuidAndOwnerKuid(
+      ownerKuid,
+      wardenUserKuid,
+    );
+    if (!warden) {
+      throw new NotFoundException('Warden not found');
+    }
+
+    await this.transactionHelper.executeInTransaction(async (client) => {
+      await this.roleRepository.deletePermissionsByRoleKuid(client, warden.role_kuid);
+      await this.roleRepository.deleteByKuid(client, warden.role_kuid);
+      await this.roleRepository.deleteUserByKuid(client, wardenUserKuid);
+    });
+
+    this.logger.log(`Warden ${wardenUserKuid} removed by owner ${ownerKuid}`, 'WardenService');
+    return {
+      message: 'Warden deleted successfully',
       user_kuid: wardenUserKuid,
     };
   }

@@ -90,5 +90,13 @@ export class RoleRepository {
   async deletePermissionsByRoleKuid(client: PoolClient, roleKuid: string): Promise<void> {
     await client.query(RoleQueries.DELETE_ROLE_PERMISSIONS_BY_ROLE_KUID, [roleKuid]);
   }
+
+  async deleteByKuid(client: PoolClient, roleKuid: string): Promise<void> {
+    await client.query(RoleQueries.DELETE_ROLE_BY_KUID, [roleKuid]);
+  }
+
+  async deleteUserByKuid(client: PoolClient, userKuid: string): Promise<void> {
+    await client.query(RoleQueries.DELETE_USER, [userKuid]);
+  }
 }
 

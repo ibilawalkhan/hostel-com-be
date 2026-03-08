@@ -1,6 +1,6 @@
 export const AuthErrorMessages = {
   INVALID_CREDENTIALS: 'Invalid credentials provided',
-  USER_ALREADY_EXISTS: 'An account with this email already exists',
+  USER_ALREADY_EXISTS: 'An account with this',
   ACCOUNT_LOCKED: 'Your account has been locked. Please contact support',
   TERMS_NOT_ACCEPTED: 'You must accept the terms and conditions',
   WEAK_PASSWORD: 'Password does not meet security requirements',

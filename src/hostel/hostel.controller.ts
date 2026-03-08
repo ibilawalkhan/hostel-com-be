@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -14,6 +15,7 @@ import { HostelService } from './hostel.service';
 import { CreateHostelDto } from './dto/create-hostel.dto';
 import { UpdateHostelDto } from './dto/update-hostel.dto';
 import { SearchHostelQueryDto } from './dto/search-hostel-query.dto';
+import { ApplyFiltersDto } from './dto/apply-filters.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -68,6 +70,29 @@ export class HostelController {
     return this.hostelService.getHostelStats(user.sub);
   }
 
+  @Post('apply-filters')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'WARDEN')
+  @ApiOperation({ summary: 'Owner/Warden: filter rooms by hostel, branch, room type, status, floor, price range, availability' })
+  @ApiResponse({ status: 200, description: 'rooms: list matching filters (kuid, hostel_kuid, room_no, type, capacity, occupied, empty_count, reserved_count, status, price_per_bed)' })
+  async applyFilters(@Body() body: ApplyFiltersDto) {
+
+    const rooms = await this.hostelService.applyFilters({
+      hostel_kuid: body.hostel_kuid,
+      branch_kuid: body.branch_kuid,
+      room_type: body.room_type,
+      status: body.status,
+      floor_no: body.floor_no,
+      min_price: body.min_price,
+      max_price: body.max_price,
+      availability: body.availability,
+      room_kuid: body.room_kuid,
+    });
+    
+    return { rooms };
+  }
+
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(RolesGuard)
@@ -83,4 +108,15 @@ export class HostelController {
     return this.hostelService.update(id, updateHostelDto);
   }
 
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('OWNER')
+  @ApiOperation({ summary: 'Owner: delete a hostel (only owner can delete)' })
+  @ApiResponse({ status: 200, description: 'Hostel deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Hostel not found' })
+  @ApiResponse({ status: 403, description: 'Only the owner can delete this hostel' })
+  deleteHostel(@Param('id') id: string, @CurrentUser() user: TokenPayload) {
+    return this.hostelService.deleteHostel(id, user.sub);
+  }
 }

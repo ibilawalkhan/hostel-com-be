@@ -6,8 +6,8 @@ import {
 import { AuthErrorMessages } from '../constants/error-messages';
 
 export class UserAlreadyExistsException extends ConflictException {
-  constructor() {
-    super(AuthErrorMessages.USER_ALREADY_EXISTS);
+  constructor(identifier: string) {
+    super(AuthErrorMessages.USER_ALREADY_EXISTS + ' ' + identifier + ' already exists');
   }
 }
 

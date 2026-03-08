@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Delete,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -39,11 +40,10 @@ export class WardenController {
   @UseGuards(RolesGuard)
   @Roles('OWNER')
   @ApiOperation({ summary: 'Owner: list wardens for their hostels' })
-  @ApiResponse({ status: 200, description: 'List of wardens with name, status, email, phone, hostel, branch, permissions, created date' })
+  @ApiResponse({ status: 200, description: 'wardens, total_wardens, active_wardens' })
   @ApiResponse({ status: 403, description: 'Only OWNER can perform this action' })
   async getWardenList(@CurrentUser() payload: TokenPayload) {
-    const list = await this.wardenService.getWardenList(payload.sub);
-    return { wardens: list };
+    return this.wardenService.getWardenList(payload.sub);
   }
 
   @Patch(':userKuid')
@@ -61,5 +61,20 @@ export class WardenController {
     @CurrentUser() payload: TokenPayload,
   ) {
     return this.wardenService.editWarden(userKuid, payload.sub, updateWardenDto);
+  }
+
+  @Delete(':userKuid')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('OWNER')
+  @ApiOperation({ summary: 'Owner: remove a warden (deletes their WARDEN role)' })
+  @ApiResponse({ status: 200, description: 'Warden deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Warden not found' })
+  @ApiResponse({ status: 403, description: 'Only OWNER can perform this action' })
+  async deleteWarden(
+    @Param('userKuid') userKuid: string,
+    @CurrentUser() payload: TokenPayload,
+  ) {
+    return this.wardenService.deleteWarden(userKuid, payload.sub);
   }
 }

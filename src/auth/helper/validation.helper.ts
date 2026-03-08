@@ -18,7 +18,7 @@ export async function validateUserUniqueness(
       `Signup attempt with existing phone: ${phone}`,
       'ValidationHelper',
     );
-    throw new UserAlreadyExistsException();
+    throw new UserAlreadyExistsException(phone);
   }
 
   if (cnic) {
@@ -28,7 +28,7 @@ export async function validateUserUniqueness(
         `Signup attempt with existing CNIC: ${cnic}`,
         'ValidationHelper',
       );
-      throw new UserAlreadyExistsException();
+      throw new UserAlreadyExistsException(cnic);
     }
   }
 }

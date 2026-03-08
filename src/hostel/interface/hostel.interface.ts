@@ -39,4 +39,17 @@ export interface HostelRow {
     total_beds: number;
     avg_occupancy: number;
   }
+
+  export interface FilteredRoomItem {
+    kuid: string;
+    hostel_kuid: string;
+    room_no: string;
+    type: string;
+    capacity: number;
+    occupied: number;
+    empty_count: number;
+    reserved_count: number;
+    status: string;
+    price_per_bed: number | null;
+  }
   

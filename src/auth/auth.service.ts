@@ -81,7 +81,6 @@ export class AuthService {
           kuid: result.user.kuid,
           full_name: result.user.full_name,
           phone: result.user.phone,
-          email: result.user.email,
           role: result.role.name,
         },
         ...tokens,

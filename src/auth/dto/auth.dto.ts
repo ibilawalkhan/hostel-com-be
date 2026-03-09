@@ -8,6 +8,7 @@ import {
   IsArray,
   IsUUID,
   ArrayMinSize,
+  MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -17,12 +18,16 @@ export class BaseSignupDto {
   @IsNotEmpty()
   @IsString()
   @MinLength(2, { message: 'Full name must be at least 2 characters long' })
+  @MaxLength(50, { message: 'Full name cannot exceed 50 characters' })
+  @Matches(/^[a-zA-Z]+(?:[\s\-][a-zA-Z]+)+$/, {
+    message: 'Please provide your full name with at least first and last name. Only letters, spaces, or hyphens are allowed.',
+  })
   full_name: string;
 
   @ApiProperty({ example: '+92-300-1234567', description: 'Phone number (used as login identifier)' })
   @IsNotEmpty()
   @IsString()
-  @Matches(/^[0-9+\-\s()]+$/, { message: 'Please provide a valid phone number' })
+  @Matches(/^(?:\+92|0)3\d{9}$/, { message: 'Please provide a valid phone number' })
   phone_number: string;
 
   @ApiProperty({ example: 'password123', minLength: 8 })

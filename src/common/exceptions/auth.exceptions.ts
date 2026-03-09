@@ -6,8 +6,14 @@ import {
 import { AuthErrorMessages } from '../constants/error-messages';
 
 export class UserAlreadyExistsException extends ConflictException {
-  constructor(identifier: string) {
-    super(AuthErrorMessages.USER_ALREADY_EXISTS + ' ' + identifier + ' already exists');
+  constructor(field?: 'phone' | 'email' | 'cnic', value?: string) {
+    if (field && value) {
+      super(`${AuthErrorMessages.USER_ALREADY_EXISTS}: ${field} ${value}`);
+    } else if (value) {
+      super(`${AuthErrorMessages.USER_ALREADY_EXISTS}: ${value}`);
+    } else {
+      super(AuthErrorMessages.USER_ALREADY_EXISTS);
+    }
   }
 }
 

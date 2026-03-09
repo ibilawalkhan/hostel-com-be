@@ -18,7 +18,18 @@ export async function validateUserUniqueness(
       `Signup attempt with existing phone: ${phone}`,
       'ValidationHelper',
     );
-    throw new UserAlreadyExistsException(phone);
+    throw new UserAlreadyExistsException('phone', phone);
+  }
+
+  if (email) {
+    const existsByEmail = await userRepository.existsByEmail(email);
+    if (existsByEmail) {
+      logger.warn(
+        `Signup attempt with existing email: ${email}`,
+        'ValidationHelper',
+      );
+      throw new UserAlreadyExistsException('email', email);
+    }
   }
 
   if (cnic) {
@@ -28,7 +39,7 @@ export async function validateUserUniqueness(
         `Signup attempt with existing CNIC: ${cnic}`,
         'ValidationHelper',
       );
-      throw new UserAlreadyExistsException(cnic);
+      throw new UserAlreadyExistsException('cnic', cnic);
     }
   }
 }

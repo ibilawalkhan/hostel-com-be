@@ -15,7 +15,7 @@ export function handleSignupError(
       `Signup attempt with duplicate data: ${error.message}`,
       'ErrorHelper',
     );
-    throw new UserAlreadyExistsException();
+    throw new UserAlreadyExistsException(undefined, identifier);
   }
 
   logger.error(

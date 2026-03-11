@@ -1,37 +1,44 @@
 # Database Setup
 
-This project uses **PostgreSQL**. The database schema is split into **4 SQL files**. Run them in the following order to avoid foreign key errors.
+### 1. Configure environment
 
-## 1. Create Database
-
-```bash
-psql -U postgres -c "CREATE DATABASE hostelcom;"
-```
-
-## 2. Run Migrations
-
-### **Step 1: Core tables & extensions**
+Create a `.env` file (or ensure it already exists) with at least:
 
 ```bash
-psql -U postgres -d hostelcom -f 001_create_tables.sql
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=hostelcom
+DB_USER=postgres
+DB_PASSWORD=your_password
 ```
 
-### **Step 2: Seed Roles & Permissions**
+These values are read by `src/database/scripts/migrate.js` and `src/database/scripts/seed.js`.
+
+### 2. Run migrations
+
+From the project root:
 
 ```bash
-psql -U postgres -d hostelcom -f 002_seed_roles_permissions.sql
+npm run migrate
 ```
 
-### **Step 3: Seed Facilities & Room Charges**
+This will connect to the database defined in `.env` and apply all SQL migrations in order.
+
+### 3. Seed data
+
+To insert initial data for **auth, hostel, rooms, lookup, and complaints**:
 
 ```bash
-psql -U postgres -d hostelcom -f 003_seed_facilities.sql
+npm run seed
 ```
 
-### **Step 4: Seed Menus, Kitchens & Complaints**
+The seed script:
 
-```bash
-psql -U postgres -d hostelcom -f 004_seed_menus_kitchens_complaints.sql
-```
+- Inserts complaint categories and priorities
+- Inserts permissions and facilities
+- Inserts payment types and account types
+- Creates a **seed OWNER user** with a fixed `kuid` (`3831ceb8e4d846f8a58c3d2b964b4ecf`)
+- Creates an OWNER role with core permissions
+- Creates a sample **hostel**, **branch**, **room**, and **beds** for local testing
 
-> **Note:** Make sure the `.sql` files are in the same folder where you run these commands, or provide the full path.
+You can run `npm run seed` multiple times; it uses `ON CONFLICT DO NOTHING` and fixed identifiers so it is safe and idempotent.

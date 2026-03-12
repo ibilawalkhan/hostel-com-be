@@ -11,6 +11,7 @@ import { HostelModule } from './hostel/hostel.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { BedModule } from './bed/bed.module';
 import { WardenModule } from './warden/warden.module';
+import { IntegrationsModule } from './integrations/integrations.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { WardenModule } from './warden/warden.module';
     RoomsModule,
     BedModule,
     WardenModule,
+    IntegrationsModule,
   ],
   controllers: [],
   providers: [

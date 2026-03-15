@@ -5,6 +5,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '../common/services/logger.service';
 
@@ -60,6 +61,25 @@ export class S3Service {
       );
       throw new InternalServerErrorException('S3 upload failed');
     }
+  }
+
+  // Generate a pre-signed PUT URL so the client can upload directly to S3
+  async getPresignedPutUrl(
+    key: string,
+    contentType?: string,
+    expiresIn: number = 900,
+  ): Promise<string> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      ...(contentType && { ContentType: contentType }),
+    });
+    return getSignedUrl(this.s3Client, command, { expiresIn });
+  }
+
+  /// Build the public URL for an object key
+  getPublicUrl(key: string): string {
+    return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
   }
 
   // Delete a file

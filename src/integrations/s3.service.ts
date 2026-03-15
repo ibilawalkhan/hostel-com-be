@@ -1,9 +1,11 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   DeleteObjectCommand,
+  HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@nestjs/config';
@@ -82,15 +84,49 @@ export class S3Service {
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
   }
 
+  /// Generate a pre-signed GET URL for reading/displaying a private S3 object (e.g. in <img src>).
+  async getPresignedGetUrl(key: string, expiresIn: number = 3600): Promise<string> {
+
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+    });
+
+    return getSignedUrl(this.s3Client, command, { expiresIn });
+  }
+
+  /// Extract S3 object key from a full public URL (e.g. https://bucket.s3.region.amazonaws.com/key).
+  /// Returns null if the URL does not match this bucket.
+  keyFromPublicUrl(publicUrl: string): string | null {
+
+    const prefix = `https://${this.bucketName}.s3.${this.region}.amazonaws.com/`;
+
+    if (!publicUrl || !publicUrl.startsWith(prefix)) return null;
+
+    return publicUrl.slice(prefix.length);
+  }
+
+  async existsInS3(key: string): Promise<boolean> {
+    try {
+      await this.s3Client.send(new HeadObjectCommand({ Bucket: this.bucketName, Key: key }));
+      return true;
+    } catch (err) {
+      if (err instanceof NotFoundException) return false;
+      throw err;
+    }
+  }
+
   // Delete a file
   async deleteFile(fileName: string) {
     try {
+
       await this.s3Client.send(
         new DeleteObjectCommand({
           Bucket: this.bucketName,
           Key: fileName,
         }),
       );
+
     } catch (error: any) {
       this.logger.error(
         `S3 delete failed for ${fileName}: ${error.message}`,

@@ -45,3 +45,21 @@ export interface ResidentMonthlyRentRow {
   created_at: Date;
   updated_at: Date;
 }
+
+export interface PaymentRow {
+  kuid: string;
+  user_kuid: string;
+  payment_type_kuid: string;
+  payment_account_kuid: string;
+  hostel_kuid: string;
+  room_kuid: string;
+  bed_kuid: string;
+  payment_method: string;
+  amount: number;
+  payment_attachment_url: string | null;
+  txn_reference: string | null;
+  status: string;
+  verification_status: string;
+  created_at: Date;
+  updated_at: Date;
+}

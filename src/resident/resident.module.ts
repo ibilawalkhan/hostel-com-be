@@ -9,6 +9,13 @@ import { PasswordService } from '../common/services/password.service';
 
 @Module({
   controllers: [ResidentController],
-  providers: [ResidentService, ResidentRepository, TransactionHelper, LoggerService,RoleRepository,PasswordService],
+  providers: [
+    ResidentService,
+    ResidentRepository,
+    TransactionHelper,
+    LoggerService,
+    RoleRepository,
+    PasswordService,
+  ],
 })
 export class ResidentModule {}

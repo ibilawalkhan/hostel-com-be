@@ -21,7 +21,7 @@ export const ResidentQueries = {
   FIND_BY_KUID: `
     SELECT * FROM residents WHERE kuid = $1
   `,
-    INSERT_USER: `
+  INSERT_USER: `
     INSERT INTO "user" (full_name, phone,password, email, cnic_number) 
     VALUES ($1, $2, $3, $4, $5) 
     RETURNING kuid
@@ -38,12 +38,22 @@ export const ResidentQueries = {
             is_active, check_in_date, checkout_out_date, 
             created_at, updated_at
 `,
-INSERT_RESIDENT_MONTHLY_RENT:`
+  INSERT_RESIDENT_MONTHLY_RENT: `
 INSERT INTO "resident_monthly_rent" (
     resident_kuid, rent_period, total_amount, due_date, status
   )
   VALUES ($1, $2, $3, $4, $5)
   RETURNING kuid, resident_kuid, rent_period, total_amount, 
             due_date, status, created_at, updated_at
+`,
+  INSERT_PAYMENT: `
+  INSERT INTO payment (
+    user_kuid, payment_type_kuid, payment_account_kuid,
+    hostel_kuid, room_kuid, bed_kuid,
+    amount,
+    txn_reference, status, verification_status
+  )
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  RETURNING *
 `,
 };

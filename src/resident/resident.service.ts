@@ -20,8 +20,6 @@ export class ResidentService {
   async walkIn(createWalkInDto: CreateWalkInDto, staffKuid: string) {
     const result = await this.transactionHelper.executeInTransaction(
       async (client) => {
-        console.log('hostel_kuid:', createWalkInDto.hostel_kuid);
-        console.log('branch_kuid:', createWalkInDto.branch_kuid);
         const passwordHash = await this.passwordService.hash(
           createWalkInDto.password,
         );
@@ -32,7 +30,7 @@ export class ResidentService {
           createWalkInDto.full_name,
           createWalkInDto.phone_number,
           passwordHash,
-          createWalkInDto.email,
+          createWalkInDto.email ?? null, // 👈 converts undefined to null
           createWalkInDto.cnic,
         );
 
@@ -55,7 +53,15 @@ export class ResidentService {
           resident.kuid,
           createWalkInDto,
         );
-        return { resident, monthlyRent };
+
+        // 5. create payment
+        const payment = await this.residentRepository.createPayment(
+          client,
+          user.kuid,
+          resident.kuid,
+          createWalkInDto,
+        );
+        return { resident, monthlyRent, role, payment };
       },
     );
 

@@ -67,10 +67,10 @@ export class CreateWalkInDto {
   @IsNotEmpty()
   room_kuid: string;
 
-@ApiProperty({ enum: ['ONLINE', 'WALK-IN'] })
-@IsString()
-@IsIn(['ONLINE', 'WALK-IN'])
-resident_type: string;
+  @ApiProperty({ enum: ['ONLINE', 'WALK-IN'] })
+  @IsString()
+  @IsIn(['ONLINE', 'WALK-IN'])
+  resident_type: string;
 
   @ApiProperty()
   @IsString()
@@ -105,4 +105,14 @@ resident_type: string;
   @IsString()
   @IsOptional()
   transaction_id?: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  payment_type_kuid: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  payment_account_kuid: string;
 }

@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 import { PaymentsQueries } from '../queries/payments.queries';
 import {
   CreatePaymentInput,
@@ -15,9 +15,13 @@ import {
 export class PaymentsRepository {
   constructor(@Inject('PG_POOL') private pool: Pool) {}
 
-  async createPaymentAccount(input: CreatePaymentAccountInput): Promise<PaymentAccountRow> {
-    const result = await this.pool.query(PaymentsQueries.INSERT_PAYMENT_ACCOUNT, [
-      input.hostel_kuid,
+  async createPaymentAccount(
+    client: PoolClient,
+    input: CreatePaymentAccountInput,
+  ): Promise<PaymentAccountRow> {
+    const result = await client.query(PaymentsQueries.INSERT_PAYMENT_ACCOUNT, [
+      input.owner_kuid,
+      input.hostel_kuid ?? null,
       input.account_type_kuid,
       input.account_title,
       input.account_number,
@@ -26,13 +30,19 @@ export class PaymentsRepository {
     return result.rows[0] as PaymentAccountRow;
   }
 
-  async findByKuid(paymentKuid: string): Promise<PaymentRow | null> {
-    const result = await this.pool.query(PaymentsQueries.FIND_PAYMENT_BY_KUID, [paymentKuid]);
+  async findByKuid(
+    client: PoolClient,
+    paymentKuid: string,
+  ): Promise<PaymentRow | null> {
+    const result = await client.query(PaymentsQueries.FIND_PAYMENT_BY_KUID, [paymentKuid]);
     return (result.rows[0] as PaymentRow) || null;
   }
 
-  async createPayment(input: CreatePaymentInput): Promise<PaymentRow> {
-    const result = await this.pool.query(PaymentsQueries.INSERT_PAYMENT, [
+  async createPayment(
+    client: PoolClient,
+    input: CreatePaymentInput,
+  ): Promise<PaymentRow> {
+    const result = await client.query(PaymentsQueries.INSERT_PAYMENT, [
       input.user_kuid,
       input.payment_type_kuid,
       input.payment_account_kuid,
@@ -132,6 +142,7 @@ export class PaymentsRepository {
   }
 
   async updatePaymentReview(
+    client: PoolClient,
     paymentKuid: string,
     updates: UpdatePaymentReviewInput,
   ): Promise<PaymentRow> {
@@ -162,7 +173,7 @@ export class PaymentsRepository {
       WHERE kuid = $${values.length}
       RETURNING *
     `;
-    const result = await this.pool.query(query, values);
+    const result = await client.query(query, values);
     return result.rows[0] as PaymentRow;
   }
 

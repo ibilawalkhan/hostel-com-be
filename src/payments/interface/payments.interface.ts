@@ -58,7 +58,8 @@ export interface UpdatePaymentReviewInput {
 
 export interface PaymentAccountRow {
   kuid: string;
-  hostel_kuid: string;
+  owner_kuid: string;
+  hostel_kuid: string | null;
   account_type_kuid: string;
   account_title: string;
   account_number: string;
@@ -69,7 +70,8 @@ export interface PaymentAccountRow {
 }
 
 export interface CreatePaymentAccountInput {
-  hostel_kuid: string;
+  owner_kuid: string;
+  hostel_kuid?: string;
   account_type_kuid: string;
   account_title: string;
   account_number: string;

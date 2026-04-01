@@ -9,10 +9,14 @@ import { PaymentsRepository } from "./repository/payments.repository";
 import { CreatePaymentDto } from "./dto/create-payment.dto";
 import { UpdatePaymentReviewDto } from "./dto/update-payment-review.dto";
 import { AddPaymentAccountDto } from "./dto/add-payment-account.dto";
+import { TransactionHelper } from "../common/database/transaction.helper";
 
 @Injectable()
 export class PaymentsService {
-  constructor(private readonly paymentsRepository: PaymentsRepository) {}
+  constructor(
+    private readonly paymentsRepository: PaymentsRepository,
+    private readonly transactionHelper: TransactionHelper,
+  ) {}
 
   async getPaymentStats(): Promise<PaymentStats> {
     return this.paymentsRepository.getPaymentStats();
@@ -20,8 +24,19 @@ export class PaymentsService {
 
   async addPaymentAccount(
     dto: AddPaymentAccountDto,
+    ownerKuid: string,
   ): Promise<{ message: string; payment_account: PaymentAccountRow }> {
-    const payment_account = await this.paymentsRepository.createPaymentAccount(dto);
+    const payment_account = await this.transactionHelper.executeInTransaction(
+      async (client) =>
+        this.paymentsRepository.createPaymentAccount(client, {
+          owner_kuid: ownerKuid,
+          hostel_kuid: dto.hostel_kuid,
+          account_type_kuid: dto.account_type_kuid,
+          account_title: dto.account_title,
+          account_number: dto.account_number,
+          bank_name: dto.bank_name,
+        }),
+    );
     return {
       message: 'Payment account added successfully',
       payment_account,
@@ -29,7 +44,9 @@ export class PaymentsService {
   }
 
   async createPayment(dto: CreatePaymentDto): Promise<{ message: string; payment: PaymentRow }> {
-    const payment = await this.paymentsRepository.createPayment(dto);
+    const payment = await this.transactionHelper.executeInTransaction(
+      async (client) => this.paymentsRepository.createPayment(client, dto),
+    );
     return {
       message: 'Payment created successfully',
       payment,
@@ -62,25 +79,29 @@ export class PaymentsService {
     dto: UpdatePaymentReviewDto,
     reviewerKuid: string,
   ): Promise<{ message: string; payment: PaymentRow }> {
-    const existing = await this.paymentsRepository.findByKuid(paymentKuid);
-    if (!existing) {
-      throw new NotFoundException('Payment not found');
-    }
+    const payment = await this.transactionHelper.executeInTransaction(
+      async (client) => {
+        const existing = await this.paymentsRepository.findByKuid(client, paymentKuid);
+        if (!existing) {
+          throw new NotFoundException('Payment not found');
+        }
 
-    const status =
-      dto.status ??
-      (dto.verification_status === 'APPROVED' ? 'COMPLETED' : 'FAILED');
+        const status =
+          dto.status ??
+          (dto.verification_status === 'APPROVED' ? 'COMPLETED' : 'FAILED');
 
-    const payment = await this.paymentsRepository.updatePaymentReview(paymentKuid, {
-      verification_status: dto.verification_status,
-      reviewed_by_user_kuid: reviewerKuid,
-      reviewed_at: new Date(),
-      rejection_reason:
-        dto.verification_status === 'REJECTED'
-          ? dto.rejection_reason!.trim()
-          : null,
-      status,
-    });
+        return this.paymentsRepository.updatePaymentReview(client, paymentKuid, {
+          verification_status: dto.verification_status,
+          reviewed_by_user_kuid: reviewerKuid,
+          reviewed_at: new Date(),
+          rejection_reason:
+            dto.verification_status === 'REJECTED'
+              ? dto.rejection_reason!.trim()
+              : null,
+          status,
+        });
+      },
+    );
 
     return {
       message: 'Payment review updated successfully',

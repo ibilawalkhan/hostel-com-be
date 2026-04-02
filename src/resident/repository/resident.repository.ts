@@ -5,7 +5,8 @@ import {
   PaymentRow,
   ResidentMonthlyRentRow,
   ResidentRow,
-  WalkInRow,
+  ResidentStats,
+  // WalkInRow,
 } from '../interface/resident.interface';
 import { ResidentQueries } from '../queries/resident.queries';
 
@@ -104,5 +105,16 @@ export class ResidentRepository {
       'UNDER-REVIEW',
     ]);
     return result.rows[0];
+  }
+  async getResidentStats(): Promise<ResidentStats> {
+    const result = await this.pool.query(ResidentQueries.GET_RESIDENT_STATS);
+    const row = result.rows[0];
+    return {
+      total_residents: Number(row.total_residents),
+      total_walk_in: Number(row.total_walk_in),
+      total_online: Number(row.total_online),
+      rent_paid: Number(row.rent_paid),
+      rent_due: Number(row.rent_due),
+    };
   }
 }

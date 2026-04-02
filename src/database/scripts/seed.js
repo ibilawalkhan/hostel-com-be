@@ -78,9 +78,31 @@ const PAYMENT_TYPES = [
 ];
 
 const ACCOUNT_TYPES = [
-  { name: 'Current' },
-  { name: 'Savings' },
+  { name: 'HBL' },
+  { name: 'MCB' },
+  { name: 'UBL' },
+  { name: 'Allied Bank' },
+  { name: 'Bank Alfalah' },
+  { name: 'Meezan Bank' },
+  { name: 'Faysal Bank' },
+  { name: 'Askari Bank' },
+  { name: 'Habib Metro' },
+  { name: 'Silk Bank' },
+  { name: 'Summit Bank' },
+  { name: 'Bank Islami' },
+  { name: 'Dubai Islamic' },
+  { name: 'NBP' },
+  { name: 'Zarai Taraqiati' },
+  { name: 'Easypaisa' },
+  { name: 'JazzCash' },
+  { name: 'Nayapay' },
+  { name: 'SadaPay' },
+  { name: 'Upaisa' },
+  { name: 'Timepey' },
+  { name: 'Oraan' },
+  { name: 'Cash' },
 ];
+
 
 // ============================================================
 // Main
@@ -159,14 +181,16 @@ async function seed() {
 
     // Account types
     log('→ Seeding account types...', 'green');
-    for (const at of ACCOUNT_TYPES) {
-      await client.query(
-        `INSERT INTO account_type (name)
-         VALUES ($1)
-         ON CONFLICT (name) DO NOTHING`,
-        [at.name],
-      );
-    }
+
+      for (const at of ACCOUNT_TYPES) {
+        await client.query(
+          `INSERT INTO account_type (name)
+          VALUES ($1)
+          ON CONFLICT (name) DO NOTHING`,
+          [at.name],
+        );
+      }
+    
     log(`  ✓ ${ACCOUNT_TYPES.length} account types`, 'green');
 
     // Seed owner user (AUTH) – uses fixed kuid so everyone shares the same owner

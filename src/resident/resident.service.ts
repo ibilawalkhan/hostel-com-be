@@ -79,4 +79,15 @@ export class ResidentService {
       result: result,
     };
   }
+
+  async getStats() {
+    const stats = await this.residentRepository.getResidentStats();
+
+    this.logger.log('Resident stats fetched', 'ResidentService');
+
+    return {
+      message: 'Resident stats fetched successfully',
+      data: stats,
+    };
+  }
 }

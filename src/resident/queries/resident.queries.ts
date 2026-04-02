@@ -56,4 +56,16 @@ INSERT INTO "resident_monthly_rent" (
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
   RETURNING *
 `,
+  GET_RESIDENT_STATS: `
+  SELECT
+    COUNT(r.kuid)                                                        AS total_residents,
+    COUNT(CASE WHEN r.type = 'WALK-IN' THEN 1 END)                      AS total_walk_in,
+    COUNT(CASE WHEN r.type = 'ONLINE' THEN 1 END)                       AS total_online,
+    COUNT(CASE WHEN rmr.status = 'PAID' THEN 1 END)                     AS rent_paid,
+    COUNT(CASE WHEN rmr.status = 'PENDING' AND rmr.due_date < NOW() 
+          THEN 1 END)                                                    AS rent_due
+  FROM resident r
+  LEFT JOIN resident_monthly_rent rmr ON rmr.resident_kuid = r.kuid
+  WHERE r.is_active = true
+`,
 };

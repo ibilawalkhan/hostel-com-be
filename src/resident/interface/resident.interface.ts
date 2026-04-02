@@ -63,3 +63,11 @@ export interface PaymentRow {
   created_at: Date;
   updated_at: Date;
 }
+
+export interface ResidentStats {
+  total_residents: number;
+  total_walk_in: number;
+  total_online: number;
+  rent_paid: number;
+  rent_due: number;
+}

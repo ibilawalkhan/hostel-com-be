@@ -293,6 +293,35 @@ async function seed() {
       [roomKuid],
     );
 
+    // Seed a sample payment account for the owner
+    log('→ Seeding payment account...', 'green');
+    await client.query(
+      `INSERT INTO payment_account (
+         owner_kuid,
+         hostel_kuid,
+         account_type_kuid,
+         account_title,
+         account_number,
+         bank_name
+       )
+       VALUES (
+         $1,
+         $2,
+         (SELECT kuid FROM account_type WHERE name = 'Current' LIMIT 1),
+         $3,
+         $4,
+         $5
+       )
+       ON CONFLICT ON CONSTRAINT payment_account_hostel_kuid_account_number_key DO NOTHING`,
+      [
+        OWNER_USER_KUID,
+        HOSTEL_A_KUID,
+        'Seed Owner Account',
+        '1234567890',
+        'Seed Bank',
+      ],
+    );
+
     await client.query('COMMIT');
 
     console.log('');

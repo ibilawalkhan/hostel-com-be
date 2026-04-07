@@ -301,224 +301,221 @@ async function seed() {
       [roomKuid],
     );
 
-    const bedOneResult = await client.query(
-      `SELECT kuid FROM bed WHERE room_kuid = $1 AND bed_no = '1' LIMIT 1`,
-      [roomKuid],
-    );
-    const bedTwoResult = await client.query(
-      `SELECT kuid FROM bed WHERE room_kuid = $1 AND bed_no = '2' LIMIT 1`,
-      [roomKuid],
-    );
-    const bedOneKuid = bedOneResult.rows[0]?.kuid;
-    const bedTwoKuid = bedTwoResult.rows[0]?.kuid;
+    // const bedOneResult = await client.query(
+    //   `SELECT kuid FROM bed WHERE room_kuid = $1 AND bed_no = '1' LIMIT 1`,
+    //   [roomKuid],
+    // );
+    // const bedTwoResult = await client.query(
+    //   `SELECT kuid FROM bed WHERE room_kuid = $1 AND bed_no = '2' LIMIT 1`,
+    //   [roomKuid],
+    // );
+    // const bedOneKuid = bedOneResult.rows[0]?.kuid;
+    // const bedTwoKuid = bedTwoResult.rows[0]?.kuid;
 
-    // Seed a sample payment account for the owner
-    log('→ Seeding payment account...', 'green');
-    await client.query(
-      `INSERT INTO payment_account (
-         owner_kuid,
-         hostel_kuid,
-         account_type_kuid,
-         account_title,
-         account_number,
-         bank_name
-       )
-       VALUES (
-         $1,
-         $2,
-         (SELECT kuid FROM account_type WHERE name = 'Current' LIMIT 1),
-         $3,
-         $4,
-         $5
-       )
-       ON CONFLICT ON CONSTRAINT payment_account_hostel_kuid_account_number_key DO NOTHING`,
-      [
-        OWNER_USER_KUID,
-        HOSTEL_A_KUID,
-        'Seed Owner Account',
-        '1234567890',
-        'Seed Bank',
-      ],
-    );
+    // // Seed a sample payment account for the owner
+    // log('→ Seeding payment account...', 'green');
+    // await client.query(
+    //   `INSERT INTO payment_account (
+    //      hostel_kuid,
+    //      account_type_kuid,
+    //      account_title,
+    //      account_number,
+    //      bank_name
+    //    )
+    //    VALUES (
+    //      $1,
+    //      $2,
+    //      (SELECT kuid FROM account_type WHERE name = 'Current' LIMIT 1),
+    //      $3,
+    //      $4,
+    //    )
+    //    ON CONFLICT ON CONSTRAINT payment_account_hostel_kuid_account_number_key DO NOTHING`,
+    //   [
+    //     HOSTEL_A_KUID,
+    //     'Seed Owner Account',
+    //     '1234567890',
+    //     'Seed Bank',
+    //   ],
+    // );
 
-    const paymentAccountResult = await client.query(
-      `SELECT kuid
-       FROM payment_account
-       WHERE owner_kuid = $1 AND hostel_kuid = $2 AND account_number = $3
-       ORDER BY created_at ASC
-       LIMIT 1`,
-      [OWNER_USER_KUID, HOSTEL_A_KUID, '1234567890'],
-    );
-    const paymentTypeResult = await client.query(
-      `SELECT kuid FROM payment_type WHERE name = 'Bank Transfer' LIMIT 1`,
-    );
+    // const paymentAccountResult = await client.query(
+    //   `SELECT kuid
+    //    FROM payment_account
+    //    WHERE owner_kuid = $1 AND hostel_kuid = $2 AND account_number = $3
+    //    ORDER BY created_at ASC
+    //    LIMIT 1`,
+    //   [OWNER_USER_KUID, HOSTEL_A_KUID, '1234567890'],
+    // );
+    // const paymentTypeResult = await client.query(
+    //   `SELECT kuid FROM payment_type WHERE name = 'Bank Transfer' LIMIT 1`,
+    // );
 
-    const paymentAccountKuid = paymentAccountResult.rows[0]?.kuid;
-    const paymentTypeKuid = paymentTypeResult.rows[0]?.kuid;
+    // const paymentAccountKuid = paymentAccountResult.rows[0]?.kuid;
+    // const paymentTypeKuid = paymentTypeResult.rows[0]?.kuid;
 
-    if (paymentAccountKuid && paymentTypeKuid && bedOneKuid && bedTwoKuid) {
-      // /payments (POST createPayment)
-      await client.query(
-        `INSERT INTO payment (
-           user_kuid,
-           payment_type_kuid,
-           payment_account_kuid,
-           hostel_kuid,
-           room_kuid,
-           bed_kuid,
-           payment_method,
-           amount,
-           payment_attachment_url,
-           txn_reference,
-           status,
-           verification_status
-         ) VALUES (
-           $1, $2, $3, $4, $5, $6,
-           'BANK_TRANSFER',
-           25000,
-           'https://example.com/payments/create-proof.jpg',
-           $7,
-           'PENDING',
-           'UNDER-REVIEW'
-         )
-         ON CONFLICT (txn_reference) DO NOTHING`,
-        [
-          OWNER_USER_KUID,
-          paymentTypeKuid,
-          paymentAccountKuid,
-          HOSTEL_A_KUID,
-          roomKuid,
-          bedOneKuid,
-          PAYMENT_SEED_TXNS.CREATE_API,
-        ],
-      );
+    // if (paymentAccountKuid && paymentTypeKuid && bedOneKuid && bedTwoKuid) {
+    //   // /payments (POST createPayment)
+    //   await client.query(
+    //     `INSERT INTO payment (
+    //        user_kuid,
+    //        payment_type_kuid,
+    //        payment_account_kuid,
+    //        hostel_kuid,
+    //        room_kuid,
+    //        bed_kuid,
+    //        payment_method,
+    //        amount,
+    //        payment_attachment_url,
+    //        txn_reference,
+    //        status,
+    //        verification_status
+    //      ) VALUES (
+    //        $1, $2, $3, $4, $5, $6,
+    //        'BANK_TRANSFER',
+    //        25000,
+    //        'https://example.com/payments/create-proof.jpg',
+    //        $7,
+    //        'PENDING',
+    //        'UNDER-REVIEW'
+    //      )
+    //      ON CONFLICT (txn_reference) DO NOTHING`,
+    //     [
+    //       OWNER_USER_KUID,
+    //       paymentTypeKuid,
+    //       paymentAccountKuid,
+    //       HOSTEL_A_KUID,
+    //       roomKuid,
+    //       bedOneKuid,
+    //       PAYMENT_SEED_TXNS.CREATE_API,
+    //     ],
+    //   );
 
-      // /payments/:id (PATCH updatePaymentReview)
-      await client.query(
-        `INSERT INTO payment (
-           user_kuid,
-           payment_type_kuid,
-           payment_account_kuid,
-           hostel_kuid,
-           room_kuid,
-           bed_kuid,
-           payment_method,
-           amount,
-           payment_attachment_url,
-           txn_reference,
-           status,
-           verification_status,
-           reviewed_by_user_kuid,
-           reviewed_at,
-           rejection_reason
-         ) VALUES (
-           $1, $2, $3, $4, $5, $6,
-           'BANK_TRANSFER',
-           26000,
-           'https://example.com/payments/review-proof.jpg',
-           $7,
-           'COMPLETED',
-           'APPROVED',
-           $8,
-           NOW(),
-           NULL
-         )
-         ON CONFLICT (txn_reference) DO NOTHING`,
-        [
-          OWNER_USER_KUID,
-          paymentTypeKuid,
-          paymentAccountKuid,
-          HOSTEL_A_KUID,
-          roomKuid,
-          bedTwoKuid,
-          PAYMENT_SEED_TXNS.REVIEW_API,
-          OWNER_USER_KUID,
-        ],
-      );
+    //   // /payments/:id (PATCH updatePaymentReview)
+    //   await client.query(
+    //     `INSERT INTO payment (
+    //        user_kuid,
+    //        payment_type_kuid,
+    //        payment_account_kuid,
+    //        hostel_kuid,
+    //        room_kuid,
+    //        bed_kuid,
+    //        payment_method,
+    //        amount,
+    //        payment_attachment_url,
+    //        txn_reference,
+    //        status,
+    //        verification_status,
+    //        reviewed_by_user_kuid,
+    //        reviewed_at,
+    //        rejection_reason
+    //      ) VALUES (
+    //        $1, $2, $3, $4, $5, $6,
+    //        'BANK_TRANSFER',
+    //        26000,
+    //        'https://example.com/payments/review-proof.jpg',
+    //        $7,
+    //        'COMPLETED',
+    //        'APPROVED',
+    //        $8,
+    //        NOW(),
+    //        NULL
+    //      )
+    //      ON CONFLICT (txn_reference) DO NOTHING`,
+    //     [
+    //       OWNER_USER_KUID,
+    //       paymentTypeKuid,
+    //       paymentAccountKuid,
+    //       HOSTEL_A_KUID,
+    //       roomKuid,
+    //       bedTwoKuid,
+    //       PAYMENT_SEED_TXNS.REVIEW_API,
+    //       OWNER_USER_KUID,
+    //     ],
+    //   );
 
-      // /payments/stats (GET getPaymentStats)
-      await client.query(
-        `INSERT INTO payment (
-           user_kuid,
-           payment_type_kuid,
-           payment_account_kuid,
-           hostel_kuid,
-           room_kuid,
-           bed_kuid,
-           payment_method,
-           amount,
-           payment_attachment_url,
-           txn_reference,
-           status,
-           verification_status,
-           reviewed_by_user_kuid,
-           reviewed_at,
-           rejection_reason
-         ) VALUES (
-           $1, $2, $3, $4, $5, $6,
-           'CASH',
-           12000,
-           'https://example.com/payments/stats-proof.jpg',
-           $7,
-           'FAILED',
-           'REJECTED',
-           $8,
-           NOW(),
-           'Seeded failed payment for stats checks'
-         )
-         ON CONFLICT (txn_reference) DO NOTHING`,
-        [
-          OWNER_USER_KUID,
-          paymentTypeKuid,
-          paymentAccountKuid,
-          HOSTEL_A_KUID,
-          roomKuid,
-          bedOneKuid,
-          PAYMENT_SEED_TXNS.STATS_API,
-          OWNER_USER_KUID,
-        ],
-      );
+    //   // /payments/stats (GET getPaymentStats)
+    //   await client.query(
+    //     `INSERT INTO payment (
+    //        user_kuid,
+    //        payment_type_kuid,
+    //        payment_account_kuid,
+    //        hostel_kuid,
+    //        room_kuid,
+    //        bed_kuid,
+    //        payment_method,
+    //        amount,
+    //        payment_attachment_url,
+    //        txn_reference,
+    //        status,
+    //        verification_status,
+    //        reviewed_by_user_kuid,
+    //        reviewed_at,
+    //        rejection_reason
+    //      ) VALUES (
+    //        $1, $2, $3, $4, $5, $6,
+    //        'CASH',
+    //        12000,
+    //        'https://example.com/payments/stats-proof.jpg',
+    //        $7,
+    //        'FAILED',
+    //        'REJECTED',
+    //        $8,
+    //        NOW(),
+    //        'Seeded failed payment for stats checks'
+    //      )
+    //      ON CONFLICT (txn_reference) DO NOTHING`,
+    //     [
+    //       OWNER_USER_KUID,
+    //       paymentTypeKuid,
+    //       paymentAccountKuid,
+    //       HOSTEL_A_KUID,
+    //       roomKuid,
+    //       bedOneKuid,
+    //       PAYMENT_SEED_TXNS.STATS_API,
+    //       OWNER_USER_KUID,
+    //     ],
+    //   );
 
-      // /payments (GET findAllPayments and filtered listing)
-      await client.query(
-        `INSERT INTO payment (
-           user_kuid,
-           payment_type_kuid,
-           payment_account_kuid,
-           hostel_kuid,
-           room_kuid,
-           bed_kuid,
-           payment_method,
-           amount,
-           payment_attachment_url,
-           txn_reference,
-           status,
-           verification_status
-         ) VALUES (
-           $1, $2, $3, $4, $5, $6,
-           'UPI',
-           18000,
-           'https://example.com/payments/list-proof.jpg',
-           $7,
-           'CANCELLED',
-           'UNDER-REVIEW'
-         )
-         ON CONFLICT (txn_reference) DO NOTHING`,
-        [
-          OWNER_USER_KUID,
-          paymentTypeKuid,
-          paymentAccountKuid,
-          HOSTEL_A_KUID,
-          roomKuid,
-          bedTwoKuid,
-          PAYMENT_SEED_TXNS.LIST_API,
-        ],
-      );
+    //   // /payments (GET findAllPayments and filtered listing)
+    //   await client.query(
+    //     `INSERT INTO payment (
+    //        user_kuid,
+    //        payment_type_kuid,
+    //        payment_account_kuid,
+    //        hostel_kuid,
+    //        room_kuid,
+    //        bed_kuid,
+    //        payment_method,
+    //        amount,
+    //        payment_attachment_url,
+    //        txn_reference,
+    //        status,
+    //        verification_status
+    //      ) VALUES (
+    //        $1, $2, $3, $4, $5, $6,
+    //        'UPI',
+    //        18000,
+    //        'https://example.com/payments/list-proof.jpg',
+    //        $7,
+    //        'CANCELLED',
+    //        'UNDER-REVIEW'
+    //      )
+    //      ON CONFLICT (txn_reference) DO NOTHING`,
+    //     [
+    //       OWNER_USER_KUID,
+    //       paymentTypeKuid,
+    //       paymentAccountKuid,
+    //       HOSTEL_A_KUID,
+    //       roomKuid,
+    //       bedTwoKuid,
+    //       PAYMENT_SEED_TXNS.LIST_API,
+    //     ],
+    //   );
 
-      log('  ✓ Seeded payment records for all payments controller endpoints', 'green');
-    } else {
-      log('  ⚠ Skipped payment records seeding due to missing dependencies', 'yellow');
-    }
+    //   log('  ✓ Seeded payment records for all payments controller endpoints', 'green');
+    // } else {
+    //   log('  ⚠ Skipped payment records seeding due to missing dependencies', 'yellow');
+    // }
 
     await client.query('COMMIT');
 

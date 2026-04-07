@@ -20,7 +20,6 @@ export class PaymentsRepository {
     input: CreatePaymentAccountInput,
   ): Promise<PaymentAccountRow> {
     const result = await client.query(PaymentsQueries.INSERT_PAYMENT_ACCOUNT, [
-      input.owner_kuid,
       input.hostel_kuid ?? null,
       input.account_type_kuid,
       input.account_title,

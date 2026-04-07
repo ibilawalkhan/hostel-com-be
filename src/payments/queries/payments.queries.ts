@@ -27,13 +27,12 @@ export const PaymentsQueries = {
 
   INSERT_PAYMENT_ACCOUNT: `
     INSERT INTO payment_account (
-      owner_kuid,
       hostel_kuid,
       account_type_kuid,
       account_title,
       account_number,
       bank_name
-    ) VALUES ($1, $2, $3, $4, $5, $6)
+    ) VALUES ($1, $2, $3, $4, $5)
     RETURNING *
   `,
 

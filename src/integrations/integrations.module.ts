@@ -8,6 +8,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [AuthModule],
   controllers: [IntegrationsController],
   providers: [IntegrationsService, S3Service],
-  exports: [S3Service],
+  exports: [IntegrationsService, S3Service],
 })
 export class IntegrationsModule {}

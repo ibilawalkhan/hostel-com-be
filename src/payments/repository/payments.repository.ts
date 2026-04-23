@@ -20,7 +20,6 @@ export class PaymentsRepository {
     input: CreatePaymentAccountInput,
   ): Promise<PaymentAccountRow> {
     const result = await client.query(PaymentsQueries.INSERT_PAYMENT_ACCOUNT, [
-      input.owner_kuid,
       input.hostel_kuid ?? null,
       input.account_type_kuid,
       input.account_title,
@@ -70,73 +69,73 @@ export class PaymentsRepository {
     let idx = 1;
 
     if (filters.user_kuid?.trim()) {
-      conditions.push(`user_kuid = $${idx}`);
+      conditions.push(`p.user_kuid = $${idx}`);
       values.push(filters.user_kuid.trim());
       idx += 1;
     }
 
     if (filters.hostel_kuid?.trim()) {
-      conditions.push(`hostel_kuid = $${idx}`);
+      conditions.push(`p.hostel_kuid = $${idx}`);
       values.push(filters.hostel_kuid.trim());
       idx += 1;
     }
 
     if (filters.room_kuid?.trim()) {
-      conditions.push(`room_kuid = $${idx}`);
+      conditions.push(`p.room_kuid = $${idx}`);
       values.push(filters.room_kuid.trim());
       idx += 1;
     }
 
     if (filters.bed_kuid?.trim()) {
-      conditions.push(`bed_kuid = $${idx}`);
+      conditions.push(`p.bed_kuid = $${idx}`);
       values.push(filters.bed_kuid.trim());
       idx += 1;
     }
 
     if (filters.payment_type_kuid?.trim()) {
-      conditions.push(`payment_type_kuid = $${idx}`);
+      conditions.push(`p.payment_type_kuid = $${idx}`);
       values.push(filters.payment_type_kuid.trim());
       idx += 1;
     }
 
     if (filters.payment_account_kuid?.trim()) {
-      conditions.push(`payment_account_kuid = $${idx}`);
+      conditions.push(`p.payment_account_kuid = $${idx}`);
       values.push(filters.payment_account_kuid.trim());
       idx += 1;
     }
 
     if (filters.payment_method?.trim()) {
-      conditions.push(`payment_method ILIKE $${idx}`);
+      conditions.push(`p.payment_method ILIKE $${idx}`);
       values.push(`%${filters.payment_method.trim()}%`);
       idx += 1;
     }
 
     if (filters.status) {
-      conditions.push(`status = $${idx}`);
+      conditions.push(`p.status = $${idx}`);
       values.push(filters.status);
       idx += 1;
     }
 
     if (filters.verification_status) {
-      conditions.push(`verification_status = $${idx}`);
+      conditions.push(`p.verification_status = $${idx}`);
       values.push(filters.verification_status);
       idx += 1;
     }
 
     if (filters.min_amount !== undefined && filters.min_amount !== null) {
-      conditions.push(`amount >= $${idx}`);
+      conditions.push(`p.amount >= $${idx}`);
       values.push(filters.min_amount);
       idx += 1;
     }
 
     if (filters.max_amount !== undefined && filters.max_amount !== null) {
-      conditions.push(`amount <= $${idx}`);
+      conditions.push(`p.amount <= $${idx}`);
       values.push(filters.max_amount);
       idx += 1;
     }
 
     const whereClause = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
-    const query = `${PaymentsQueries.LIST_PAYMENTS_BASE.trim()}${whereClause} ORDER BY created_at DESC`;
+    const query = `${PaymentsQueries.LIST_PAYMENTS_BASE.trim()}${whereClause} ORDER BY p.created_at DESC`;
     const result = await this.pool.query(query, values);
     return result.rows as PaymentRow[];
   }

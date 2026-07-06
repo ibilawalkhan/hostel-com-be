@@ -11,6 +11,7 @@ import { HostelModule } from './hostel/hostel.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { BedModule } from './bed/bed.module';
 import { WardenModule } from './warden/warden.module';
+import { PaymentsModule } from './payments/payments.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { HealthModule } from './health/health.module';
 
@@ -29,6 +30,7 @@ import { HealthModule } from './health/health.module';
     BedModule,
     WardenModule,
     IntegrationsModule,
+    PaymentsModule,
     HealthModule,
   ],
   controllers: [],

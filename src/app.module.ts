@@ -12,6 +12,7 @@ import { RoomsModule } from './rooms/rooms.module';
 import { BedModule } from './bed/bed.module';
 import { WardenModule } from './warden/warden.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
     BedModule,
     WardenModule,
     IntegrationsModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [
